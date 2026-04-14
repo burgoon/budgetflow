@@ -1088,6 +1088,209 @@ select.input {
   color: var(--danger);
 }
 
+/* Interactive chip — tappable to open the per-occurrence override menu */
+button.chip--interactive {
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.05s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+button.chip--interactive:hover,
+button.chip--interactive:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 30%, transparent);
+  outline: none;
+}
+
+button.chip--interactive:active {
+  transform: scale(0.96);
+}
+
+/* Override states. Paid and canceled suppress balance contribution, so the
+   chip is visibly inactive. Moved chips render on the relocated day with a
+   subtle accent so you can tell it was shifted. */
+.chip--paid {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.chip--canceled {
+  text-decoration: line-through;
+  opacity: 0.55;
+  background: color-mix(in srgb, var(--text-muted) 18%, transparent);
+  color: var(--text-muted);
+}
+
+.chip--moved {
+  border: 1px dashed currentColor;
+}
+
+/* -------- Occurrence actions modal -------- */
+.occurrence-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.occurrence-actions__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.occurrence-actions__amount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.occurrence-actions__dir {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.occurrence-actions__meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--space-3);
+  font-size: 0.85rem;
+}
+
+.occurrence-actions__meta > div {
+  display: contents;
+}
+
+.occurrence-actions__meta dt {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.occurrence-actions__meta dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.occurrence-actions__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.occurrence-action {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+}
+
+.occurrence-action:hover {
+  background: var(--border);
+}
+
+.occurrence-action:active {
+  transform: scale(0.99);
+}
+
+.occurrence-action--active {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 10%, var(--bg));
+}
+
+.occurrence-action--success {
+  color: var(--success);
+}
+
+.occurrence-action--danger {
+  color: var(--danger);
+}
+
+.occurrence-action--info {
+  color: var(--primary);
+}
+
+.occurrence-action--neutral {
+  color: var(--text-secondary);
+}
+
+.occurrence-action__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  color: inherit;
+}
+
+.occurrence-action__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.occurrence-action__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.occurrence-action__badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+}
+
+.occurrence-action__hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.occurrence-move {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.occurrence-move__actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
 /* -------- Empty profile welcome -------- */
 .empty-profile {
   min-height: 100vh;

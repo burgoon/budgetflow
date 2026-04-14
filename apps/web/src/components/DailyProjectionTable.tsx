@@ -1,14 +1,38 @@
 import { useMemo } from "react";
 import { startOfDay } from "date-fns";
-import type { DailyProjectionRow } from "../lib/projection";
-import { formatCurrency, formatDate } from "../lib/format";
+import type { DailyEvent, DailyProjectionRow } from "../lib/projection";
+import type { DateFormat } from "../types";
+import { formatCurrency, formatDate, parseDateInput } from "../lib/format";
 import { useDateFormat } from "../state";
+
+function overrideTooltip(
+  event: DailyEvent,
+  amountLabel: string,
+  dateFormat: DateFormat,
+): string {
+  const override = event.override;
+  if (!override) return amountLabel;
+  const scheduled = formatDate(parseDateInput(event.scheduledDate), dateFormat);
+  if (override.status === "paid") {
+    return `${amountLabel} · Paid (scheduled ${scheduled})`;
+  }
+  if (override.status === "canceled") {
+    return `${amountLabel} · Canceled (scheduled ${scheduled})`;
+  }
+  if (override.status === "moved" && override.actualDate) {
+    return `${amountLabel} · Moved from ${scheduled}`;
+  }
+  return amountLabel;
+}
 
 interface Props {
   rows: DailyProjectionRow[];
+  /** When provided, each activity chip becomes a button and invokes this on
+   *  tap. Used to open the per-occurrence override menu. */
+  onEventClick?: (event: DailyEvent) => void;
 }
 
-export function DailyProjectionTable({ rows }: Props) {
+export function DailyProjectionTable({ rows, onEventClick }: Props) {
   const dateFormat = useDateFormat();
   const todayTs = useMemo(() => startOfDay(new Date()).getTime(), []);
 
@@ -54,15 +78,37 @@ export function DailyProjectionTable({ rows }: Props) {
                     <span className="projection-table__activity-empty">—</span>
                   ) : (
                     <div className="projection-table__chips">
-                      {row.activity.map((event) => (
-                        <span
-                          key={event.id}
-                          className={`chip chip--${event.direction}`}
-                          title={`${event.direction === "income" ? "+" : "−"}${formatCurrency(event.amount)}`}
-                        >
-                          {event.name}
-                        </span>
-                      ))}
+                      {row.activity.map((event, index) => {
+                        const overrideClass = event.override
+                          ? ` chip--${event.override.status}`
+                          : "";
+                        const amountPrefix = event.direction === "income" ? "+" : "−";
+                        const amountLabel = `${amountPrefix}${formatCurrency(event.amount)}`;
+                        const tooltip = overrideTooltip(event, amountLabel, dateFormat);
+                        // Key by event.id + scheduledDate + index so multiple
+                        // occurrences of the same cash flow on one day (e.g.
+                        // moved + already-scheduled-same-day) are distinct.
+                        const key = `${event.id}:${event.scheduledDate}:${index}`;
+                        const className = `chip chip--${event.direction}${overrideClass}`;
+                        if (onEventClick) {
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              className={`${className} chip--interactive`}
+                              title={tooltip}
+                              onClick={() => onEventClick(event)}
+                            >
+                              {event.name}
+                            </button>
+                          );
+                        }
+                        return (
+                          <span key={key} className={className} title={tooltip}>
+                            {event.name}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                 </td>

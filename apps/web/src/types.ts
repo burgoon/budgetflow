@@ -40,6 +40,19 @@ export interface Account {
   startingBalanceDate: string;
 }
 
+/** Per-occurrence action on a scheduled cash flow. Lets the user override what
+ *  a specific firing does without editing the underlying recurrence. */
+export type OccurrenceOverrideStatus = "paid" | "canceled" | "moved";
+
+export interface OccurrenceOverride {
+  /** yyyy-mm-dd — the originally scheduled date this override applies to. */
+  scheduledDate: string;
+  status: OccurrenceOverrideStatus;
+  /** yyyy-mm-dd — only populated when status === "moved". The date it
+   *  actually posted (or is expected to). */
+  actualDate?: string;
+}
+
 export interface CashFlow {
   id: string;
   profileId: string;
@@ -51,6 +64,9 @@ export interface CashFlow {
   startDate: string;
   endDate: string | null;
   recurrence: Recurrence;
+  /** Per-occurrence overrides. Absent = every firing uses the recurrence
+   *  schedule as-is. Keyed inside the array by scheduledDate. */
+  overrides?: OccurrenceOverride[];
 }
 
 export interface AppData {

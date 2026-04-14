@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { addDays, startOfDay } from "date-fns";
 import { CalendarDays, Download } from "lucide-react";
 import type { Profile } from "../types";
-import { useApp } from "../state";
+import { useApp, useDateFormat } from "../state";
 import {
   dailyProjection,
   eventsByDay,
@@ -14,11 +14,14 @@ import {
 import { downloadCsv, toCsv } from "../lib/csv";
 import { toDateInputValue } from "../lib/format";
 import { DailyProjectionTable } from "../components/DailyProjectionTable";
+import { OccurrenceActionsModal } from "../components/OccurrenceActionsModal";
 
 const PROJECTION_DAYS = 365;
 
 export function DayByDayPage({ profile }: { profile: Profile }) {
   const { data } = useApp();
+  const dateFormat = useDateFormat();
+  const [selectedEvent, setSelectedEvent] = useState<DailyEvent | null>(null);
 
   const profileAccounts = useMemo(
     () => data.accounts.filter((account) => account.profileId === profile.id),
@@ -96,7 +99,15 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
           <p>Add at least one account to see a day-by-day breakdown.</p>
         </div>
       ) : (
-        <DailyProjectionTable rows={rows} />
+        <DailyProjectionTable rows={rows} onEventClick={setSelectedEvent} />
+      )}
+
+      {selectedEvent && (
+        <OccurrenceActionsModal
+          event={selectedEvent}
+          dateFormat={dateFormat}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </div>
   );

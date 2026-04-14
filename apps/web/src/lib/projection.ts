@@ -1,7 +1,13 @@
 import { addDays, isBefore, startOfDay } from "date-fns";
-import { Account, AccountKind, CashFlow, CashFlowDirection } from "../types";
+import {
+  Account,
+  AccountKind,
+  CashFlow,
+  CashFlowDirection,
+  OccurrenceOverride,
+} from "../types";
 import { occurrencesIn } from "./recurrence";
-import { parseDateInput } from "./format";
+import { parseDateInput, toDateInputValue } from "./format";
 
 export interface BalancePoint {
   date: Date;
@@ -64,7 +70,25 @@ function projectAccount(
       // worth is reconciled separately in netWorthAt by sign-flipping credit.
       const baseSigned = cf.amount * (cf.direction === "income" ? 1 : -1);
       const signed = account.kind === "credit" ? -baseSigned : baseSigned;
-      return dates.map((date) => ({ date, delta: signed }));
+
+      const overrides = overridesByDate(cf);
+      const result: { date: Date; delta: number }[] = [];
+      for (const date of dates) {
+        const override = overrides.get(toDateInputValue(date));
+        if (!override) {
+          result.push({ date, delta: signed });
+          continue;
+        }
+        if (override.status === "moved" && override.actualDate) {
+          const actual = parseDateInput(override.actualDate);
+          // Only fire if the relocated date still falls inside the window.
+          if (actual.getTime() >= dayStart.getTime() && actual.getTime() <= dayEnd.getTime()) {
+            result.push({ date: actual, delta: signed });
+          }
+        }
+        // "paid" and "canceled" are no-ops for balance math.
+      }
+      return result;
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -128,11 +152,28 @@ export function totalBalance(series: AccountSeries[], on: Date): number {
 }
 
 export interface DailyEvent {
+  /** ID of the originating cash flow (not unique per occurrence). */
   id: string;
   name: string;
   amount: number;
   direction: CashFlowDirection;
   accountId: string | null;
+  /** yyyy-mm-dd — the recurrence-derived scheduled date. Used as the key to
+   *  match against `cashFlow.overrides`, so the UI knows which occurrence to
+   *  toggle when a chip is tapped. */
+  scheduledDate: string;
+  /** The override that applies to this occurrence, if any. null = firing
+   *  as scheduled. */
+  override: OccurrenceOverride | null;
+}
+
+/** Index a cash flow's overrides by their scheduledDate for O(1) lookup. */
+function overridesByDate(cashFlow: CashFlow): Map<string, OccurrenceOverride> {
+  const map = new Map<string, OccurrenceOverride>();
+  for (const override of cashFlow.overrides ?? []) {
+    map.set(override.scheduledDate, override);
+  }
+  return map;
 }
 
 export interface DailyAccountBalance {
@@ -186,24 +227,51 @@ export function dailyProjection(
 
 /**
  * Build a map keyed by startOfDay timestamp of every cash flow occurrence
- * inside the window. Used to render per-day "what fired today" chips next
- * to the balance columns.
+ * inside the window. Used to render per-day "what fired today" chips in
+ * the day-by-day table.
+ *
+ * Overrides are included:
+ *   - "paid" / "canceled" occurrences appear on their scheduled date with
+ *     their override attached — the chip renders struck-through and the
+ *     engine ignores them for balance math.
+ *   - "moved" occurrences appear on their actual date (and only if the
+ *     actual date is inside the window); the scheduled date no longer
+ *     shows the chip.
  */
 export function eventsByDay(
   cashFlows: CashFlow[],
   window: { start: Date; end: Date },
 ): Map<number, DailyEvent[]> {
   const map = new Map<number, DailyEvent[]>();
+  const windowStartTs = startOfDay(window.start).getTime();
+  const windowEndTs = startOfDay(window.end).getTime();
+
   for (const cashFlow of cashFlows) {
     const start = parseDateInput(cashFlow.startDate);
     const end = cashFlow.endDate ? parseDateInput(cashFlow.endDate) : null;
     const dates = occurrencesIn(cashFlow.recurrence, start, end, window);
+    const overrides = overridesByDate(cashFlow);
+
     for (const date of dates) {
-      const key = date.getTime();
-      let bucket = map.get(key);
+      const scheduledDate = toDateInputValue(date);
+      const override = overrides.get(scheduledDate) ?? null;
+
+      let displayTs: number;
+      if (override?.status === "moved" && override.actualDate) {
+        const actualTs = parseDateInput(override.actualDate).getTime();
+        if (actualTs < windowStartTs || actualTs > windowEndTs) {
+          // Relocated outside the window — don't render anywhere.
+          continue;
+        }
+        displayTs = actualTs;
+      } else {
+        displayTs = date.getTime();
+      }
+
+      let bucket = map.get(displayTs);
       if (!bucket) {
         bucket = [];
-        map.set(key, bucket);
+        map.set(displayTs, bucket);
       }
       bucket.push({
         id: cashFlow.id,
@@ -211,6 +279,8 @@ export function eventsByDay(
         amount: cashFlow.amount,
         direction: cashFlow.direction,
         accountId: cashFlow.accountId,
+        scheduledDate,
+        override,
       });
     }
   }
