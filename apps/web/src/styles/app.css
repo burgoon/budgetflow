@@ -1284,10 +1284,31 @@ select.input {
   }
 }
 
-/* When installed as a standalone PWA, hide any browser-only chrome we'd add
-   later, and make the safe-area handling slightly more generous. */
+/* In PWA standalone mode the web view fills the entire screen, including the
+   area behind the status bar / notch. We normally rely on
+   env(safe-area-inset-top) to push the header below the notch — but if the
+   PWA was installed from an older index.html (i.e. before viewport-fit=cover
+   was in the meta viewport), env() can report 0 and the header clips under
+   the notch. A hard 54px floor covers every current iPhone's notch / Dynamic
+   Island height so the UI never hides behind it, and max() means notched
+   devices with working env() still get the real inset when it's larger. */
 @media (display-mode: standalone) {
   .layout__header {
-    padding-top: max(env(safe-area-inset-top), var(--space-2));
+    padding-top: max(env(safe-area-inset-top), 54px);
+  }
+
+  /* Re-assert the bottom-fixed tab bar in PWA mobile. Some older iOS PWA
+     installs fail to evaluate the primary @media (max-width: 700px) rule
+     against the viewport the way Safari does, which would leave the tab
+     bar stuck in the header flow at the top of the screen. This rule
+     makes the positioning stick regardless. */
+  @media (max-width: 700px) {
+    .layout__tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      top: auto;
+    }
   }
 }
