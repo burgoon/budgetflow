@@ -59,12 +59,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
       "Ending balance",
     ];
     const body = rows.map((row) => {
-      const activity = row.activity
-        .map(
-          (event) =>
-            `${event.name} (${event.direction === "income" ? "+" : "-"}${event.amount.toFixed(2)})`,
-        )
-        .join("; ");
+      const activity = row.activity.map(formatEventForCsv).join("; ");
       return [
         toDateInputValue(row.date),
         row.date.toLocaleDateString("en-US", { weekday: "long" }),
@@ -77,6 +72,29 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
     const csv = toCsv([header, ...body]);
     const filename = `budgetflow-day-by-day-${toDateInputValue(new Date())}.csv`;
     downloadCsv(filename, csv);
+  }
+
+  /**
+   * Serialize a single activity chip for CSV. Mirrors the table's visual
+   * treatment: active events show as name + signed amount; overridden
+   * events get a bracketed status tag so paid / canceled / moved are
+   * distinguishable in a spreadsheet.
+   */
+  function formatEventForCsv(event: DailyEvent): string {
+    const sign = event.direction === "income" ? "+" : "-";
+    const base = `${event.name} (${sign}${event.amount.toFixed(2)})`;
+    const override = event.override;
+    if (!override) return base;
+    switch (override.status) {
+      case "paid":
+        return `${base} [paid]`;
+      case "canceled":
+        return `${base} [canceled]`;
+      case "moved":
+        return `${base} [moved from ${event.scheduledDate}]`;
+      default:
+        return base;
+    }
   }
 
   const canExport = rows.length > 0;
