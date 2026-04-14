@@ -47,17 +47,23 @@ npm run cdk:deploy
 
 ### Custom domain
 
-To serve the app from your own domain, pass `domainName`, `hostedZoneId`, and `hostedZoneName` as CDK context. The hosted zone must already exist in Route 53 in the same AWS account.
+To serve the app from your own domain, pass `domainName` as CDK context. The parent hosted zone (e.g. `goonbits.com` when deploying to `budgetflow.goonbits.com`) must already exist in Route 53 in the same AWS account — it's looked up by name automatically.
+
+```bash
+cd infra/cdk
+npx cdk deploy -c domainName=budgetflow.example.com
+```
+
+By default a new DNS-validated ACM certificate is minted for the domain. If a wildcard cert that covers the domain already exists in the account (e.g. a sibling stack's `*.example.com`), pass its ARN to reuse it instead of minting another:
 
 ```bash
 cd infra/cdk
 npx cdk deploy \
   -c domainName=budgetflow.example.com \
-  -c hostedZoneId=Z1234567890ABC \
-  -c hostedZoneName=example.com
+  -c certificateArn=arn:aws:acm:us-east-1:ACCOUNT:certificate/ID
 ```
 
-The stack provisions an ACM certificate in `us-east-1`, attaches it to the CloudFront distribution, and creates a Route 53 alias record.
+The certificate must be in `us-east-1` to attach to CloudFront. The stack creates both A and AAAA (IPv6) alias records pointing at the distribution.
 
 ### Tear down
 

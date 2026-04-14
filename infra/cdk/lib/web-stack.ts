@@ -17,24 +17,34 @@ import { Construct } from "constructs";
 
 export interface WebStackProps extends StackProps {
   /**
-   * Custom domain configuration. When omitted, the site is served from the
-   * CloudFront distribution's default `*.cloudfront.net` URL — handy for
-   * staging and fine for a shareable link.
+   * Optional custom domain. When omitted the site is served from the
+   * CloudFront distribution's default `*.cloudfront.net` URL.
+   *
+   * The parent hosted zone is derived from the domain name — e.g.
+   * "budgetflow.goonbits.com" → "goonbits.com" — and looked up by name.
    */
   domain?: {
     domainName: string;
-    hostedZoneId: string;
-    hostedZoneName: string;
+    /**
+     * Optional ARN of an existing ACM certificate (must be in us-east-1
+     * to attach to CloudFront). When provided, the cert is imported and
+     * reused. When omitted, a new DNS-validated cert is issued for the
+     * domain.
+     *
+     * Use this to reuse a wildcard cert from a sibling stack — e.g. the
+     * Goonbits stack's `*.goonbits.com` cert already covers
+     * `budgetflow.goonbits.com`, so minting another one is pointless.
+     */
+    certificateArn?: string;
   };
 }
 
 /**
  * Static hosting stack for the BudgetFlow web app:
- *   S3 bucket (private, OAC-accessed) -> CloudFront distribution -> optional Route53 record.
+ *   S3 bucket (private, OAC-accessed) → CloudFront → optional Route 53 records.
  *
- * The bucket receives the built `apps/web/dist/` assets on every deploy.
- * CloudFront is configured to serve `index.html` for missing keys so client-side
- * app state (localStorage) and a potential future SPA router don't 404.
+ * CloudFront serves `index.html` for 403/404 so the SPA router (and any
+ * future pushState-based navigation) never 404s on a deep link.
  */
 export class WebStack extends Stack {
   constructor(scope: Construct, id: string, props: WebStackProps) {
@@ -50,17 +60,24 @@ export class WebStack extends Stack {
 
     let certificate: acm.ICertificate | undefined;
     let zone: route53.IHostedZone | undefined;
+    let domainNames: string[] | undefined;
+
     if (props.domain) {
-      zone = route53.HostedZone.fromHostedZoneAttributes(this, "Zone", {
-        hostedZoneId: props.domain.hostedZoneId,
-        zoneName: props.domain.hostedZoneName,
+      const parentZoneName = parentZoneOf(props.domain.domainName);
+      zone = route53.HostedZone.fromLookup(this, "Zone", {
+        domainName: parentZoneName,
       });
-      // CloudFront requires the ACM cert in us-east-1 regardless of stack region.
-      certificate = new acm.DnsValidatedCertificate(this, "SiteCertificate", {
-        domainName: props.domain.domainName,
-        hostedZone: zone,
-        region: "us-east-1",
-      });
+      certificate = props.domain.certificateArn
+        ? acm.Certificate.fromCertificateArn(
+            this,
+            "Certificate",
+            props.domain.certificateArn,
+          )
+        : new acm.Certificate(this, "Certificate", {
+            domainName: props.domain.domainName,
+            validation: acm.CertificateValidation.fromDns(zone),
+          });
+      domainNames = [props.domain.domainName];
     }
 
     const distribution = new cloudfront.Distribution(this, "SiteDistribution", {
@@ -85,15 +102,19 @@ export class WebStack extends Stack {
           ttl: Duration.minutes(5),
         },
       ],
-      domainNames: props.domain ? [props.domain.domainName] : undefined,
+      domainNames,
       certificate,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
     });
 
     new s3deploy.BucketDeployment(this, "DeploySite", {
-      // Resolved from infra/cdk → ../../apps/web/dist
-      sources: [s3deploy.Source.asset(path.join(__dirname, "..", "..", "..", "apps", "web", "dist"))],
+      // Resolved from infra/cdk/lib → ../../../apps/web/dist
+      sources: [
+        s3deploy.Source.asset(
+          path.join(__dirname, "..", "..", "..", "apps", "web", "dist"),
+        ),
+      ],
       destinationBucket: siteBucket,
       distribution,
       distributionPaths: ["/*"],
@@ -101,10 +122,19 @@ export class WebStack extends Stack {
     });
 
     if (props.domain && zone) {
+      const recordName = subdomainOf(props.domain.domainName, zone.zoneName);
+      const aliasTarget = route53.RecordTarget.fromAlias(
+        new targets.CloudFrontTarget(distribution),
+      );
       new route53.ARecord(this, "AliasRecord", {
         zone,
-        recordName: props.domain.domainName,
-        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution)),
+        recordName,
+        target: aliasTarget,
+      });
+      new route53.AaaaRecord(this, "AliasRecordV6", {
+        zone,
+        recordName,
+        target: aliasTarget,
       });
     }
 
@@ -112,12 +142,33 @@ export class WebStack extends Stack {
       value: `https://${distribution.distributionDomainName}`,
     });
     if (props.domain) {
-      new CfnOutput(this, "CustomDomainUrl", {
+      new CfnOutput(this, "SiteUrl", {
         value: `https://${props.domain.domainName}`,
       });
     }
-    new CfnOutput(this, "BucketName", {
-      value: siteBucket.bucketName,
-    });
+    new CfnOutput(this, "BucketName", { value: siteBucket.bucketName });
   }
+}
+
+/**
+ * Derive the parent hosted-zone name from a full domain.
+ *   "budgetflow.goonbits.com" → "goonbits.com"
+ *   "goonbits.com"            → "goonbits.com" (apex)
+ */
+function parentZoneOf(fullDomain: string): string {
+  const parts = fullDomain.split(".");
+  if (parts.length < 3) return fullDomain;
+  return parts.slice(1).join(".");
+}
+
+/**
+ * Derive the Route 53 record name relative to its zone.
+ *   "budgetflow.goonbits.com" in zone "goonbits.com" → "budgetflow"
+ *   "goonbits.com"            in zone "goonbits.com" → undefined (apex)
+ */
+function subdomainOf(fullDomain: string, zoneName: string): string | undefined {
+  if (fullDomain === zoneName) return undefined;
+  const suffix = "." + zoneName;
+  if (fullDomain.endsWith(suffix)) return fullDomain.slice(0, -suffix.length);
+  return fullDomain;
 }
