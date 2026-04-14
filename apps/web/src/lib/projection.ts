@@ -58,7 +58,12 @@ function projectAccount(
         start: dayStart,
         end: dayEnd,
       });
-      const signed = cf.amount * (cf.direction === "income" ? 1 : -1);
+      // Checking/savings: expenses subtract from the balance, income adds.
+      // Credit cards: the stored balance is "amount owed", so expenses INCREASE
+      // it (debt grows) and income (payments / refunds) DECREASES it. Net
+      // worth is reconciled separately in netWorthAt by sign-flipping credit.
+      const baseSigned = cf.amount * (cf.direction === "income" ? 1 : -1);
+      const signed = account.kind === "credit" ? -baseSigned : baseSigned;
       return dates.map((date) => ({ date, delta: signed }));
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());

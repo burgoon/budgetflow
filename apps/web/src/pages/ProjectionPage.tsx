@@ -256,6 +256,9 @@ export function ProjectionPage({ profile }: { profile: Profile }) {
                 const start = series.points[0]?.balance ?? 0;
                 const end = series.points[series.points.length - 1]?.balance ?? 0;
                 const delta = end - start;
+                // Credit cards store "amount owed", so a positive delta means
+                // debt grew — that's bad, color it red. Flip the usual rule.
+                const favorable = series.kind === "credit" ? delta <= 0 : delta >= 0;
                 const color = accountColors.get(series.accountId) ?? SERIES_COLORS[0]!;
                 return (
                   <li key={series.accountId}>
@@ -275,7 +278,7 @@ export function ProjectionPage({ profile }: { profile: Profile }) {
                       <span className="card-row__trail">
                         <span className="card-row__value mono">{formatCurrency(end)}</span>
                         <span
-                          className={`card-row__delta mono ${delta >= 0 ? "positive" : "negative"}`}
+                          className={`card-row__delta mono ${favorable ? "positive" : "negative"}`}
                         >
                           {formatCurrencySigned(delta)}
                         </span>
