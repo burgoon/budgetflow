@@ -1,0 +1,85 @@
+export type AccountKind = "checking" | "savings" | "credit";
+export type CashFlowDirection = "income" | "expense";
+export type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
+
+export const DATE_FORMATS: DateFormat[] = ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"];
+export const DEFAULT_DATE_FORMAT: DateFormat = "MM/DD/YYYY";
+
+/**
+ * All recurrence variants supported by BudgetFlow.
+ * Weekdays follow the JS Date.getDay convention: 0=Sunday, 6=Saturday.
+ * Months are 1-indexed (1=January) — the engine handles the Date constructor offset.
+ */
+export type Recurrence =
+  | { kind: "oneTime" }
+  | { kind: "daily" }
+  | { kind: "weekly"; weekday: number }
+  | { kind: "semiMonthly" }
+  | { kind: "monthly"; day: number }
+  | { kind: "annually"; month: number; day: number };
+
+export interface Profile {
+  id: string;
+  name: string;
+  createdAt: string;
+  /** Preferred date display/entry format. Falls back to DEFAULT_DATE_FORMAT when missing. */
+  dateFormat?: DateFormat;
+}
+
+export interface Account {
+  id: string;
+  profileId: string;
+  name: string;
+  kind: AccountKind;
+  /**
+   * Current balance as of `startingBalanceDate`. For credit accounts, store as a
+   * positive number representing the amount owed; it is subtracted from net worth
+   * by the projection engine.
+   */
+  startingBalance: number;
+  startingBalanceDate: string;
+}
+
+export interface CashFlow {
+  id: string;
+  profileId: string;
+  accountId: string | null;
+  name: string;
+  /** Always stored positive; direction determines the sign at projection time. */
+  amount: number;
+  direction: CashFlowDirection;
+  startDate: string;
+  endDate: string | null;
+  recurrence: Recurrence;
+}
+
+export interface AppData {
+  version: 1;
+  profiles: Profile[];
+  accounts: Account[];
+  cashFlows: CashFlow[];
+  activeProfileId: string | null;
+}
+
+export const EMPTY_APP_DATA: AppData = {
+  version: 1,
+  profiles: [],
+  accounts: [],
+  cashFlows: [],
+  activeProfileId: null,
+};
+
+export const ACCOUNT_KIND_LABEL: Record<AccountKind, string> = {
+  checking: "Checking",
+  savings: "Savings",
+  credit: "Credit Card",
+};
+
+export const RECURRENCE_KIND_LABEL: Record<Recurrence["kind"], string> = {
+  oneTime: "One time",
+  daily: "Daily",
+  weekly: "Weekly",
+  semiMonthly: "1st & 15th",
+  monthly: "Monthly",
+  annually: "Annually",
+};

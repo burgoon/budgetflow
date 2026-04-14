@@ -1,0 +1,21 @@
+{
+  "name": "goonbits-budgetflow",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "infra/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@goonbits-budgetflow/web",
+    "build": "npm run build --workspace=@goonbits-budgetflow/web",
+    "preview": "npm run preview --workspace=@goonbits-budgetflow/web",
+    "cdk:synth": "npm run synth --workspace=@goonbits-budgetflow/infra",
+    "cdk:deploy": "npm run build --workspace=@goonbits-budgetflow/web && npm run deploy --workspace=@goonbits-budgetflow/infra",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}
