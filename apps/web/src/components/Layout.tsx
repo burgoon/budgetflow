@@ -1,8 +1,16 @@
-import type { ReactNode } from "react";
-import { CalendarDays, LineChart, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import {
+  CalendarDays,
+  LineChart,
+  MoreHorizontal,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 import type { Tab } from "../App";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { MoreMenuSheet } from "./MoreMenuSheet";
 
 interface LayoutProps {
   tab: Tab;
@@ -19,6 +27,8 @@ const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
 ];
 
 export function Layout({ tab, onTabChange, children }: LayoutProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+
   return (
     <div className="layout">
       <header className="layout__header">
@@ -42,9 +52,23 @@ export function Layout({ tab, onTabChange, children }: LayoutProps) {
               <span>{label}</span>
             </button>
           ))}
+          {/* Mobile-only: opens the settings sheet (theme, profile, data).
+              Hidden on desktop via CSS, where the same controls live in the
+              header. */}
+          <button
+            type="button"
+            className="layout__tab layout__tab--more"
+            onClick={() => setMoreOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={moreOpen}
+          >
+            <MoreHorizontal size={16} aria-hidden />
+            <span>More</span>
+          </button>
         </nav>
       </header>
       <main className="layout__main">{children}</main>
+      {moreOpen && <MoreMenuSheet onClose={() => setMoreOpen(false)} />}
     </div>
   );
 }

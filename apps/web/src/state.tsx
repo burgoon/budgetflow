@@ -16,6 +16,7 @@ import {
   Profile,
 } from "./types";
 import { loadAppData, saveAppData } from "./storage";
+import { mergeAppData } from "./lib/dataExport";
 
 interface AppContextValue {
   data: AppData;
@@ -30,6 +31,12 @@ interface AppContextValue {
   createCashFlow: (input: Omit<CashFlow, "id">) => CashFlow;
   updateCashFlow: (id: string, changes: Partial<Omit<CashFlow, "id" | "profileId">>) => void;
   deleteCashFlow: (id: string) => void;
+  /** Wholesale replace — used by the import flow when the user picks
+   *  "Replace all data". Caller is responsible for any confirmation UX. */
+  replaceAllData: (data: AppData) => void;
+  /** Apply the imported AppData on top of the existing one. All imported
+   *  IDs are re-keyed so nothing collides with what's already there. */
+  mergeImportedData: (imported: AppData) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -136,6 +143,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, cashFlows: d.cashFlows.filter((c) => c.id !== id) }));
   }, []);
 
+  const replaceAllData = useCallback((next: AppData) => {
+    setData(next);
+  }, []);
+
+  const mergeImportedData = useCallback((imported: AppData) => {
+    setData((d) => mergeAppData(d, imported));
+  }, []);
+
   const value: AppContextValue = {
     data,
     activeProfile,
@@ -149,6 +164,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createCashFlow,
     updateCashFlow,
     deleteCashFlow,
+    replaceAllData,
+    mergeImportedData,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

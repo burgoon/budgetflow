@@ -1,15 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Pencil, Plus, Trash2, UserRound } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Download,
+  Link as LinkIcon,
+  Pencil,
+  Upload,
+  UserRound,
+} from "lucide-react";
 import { useApp } from "../state";
-import { Modal } from "./Modal";
 import { ProfileEditor } from "./ProfileEditor";
+import { ProfileManagerView } from "./ProfileManagerView";
+import { ExportModal } from "./ExportModal";
+import { ImportModal } from "./ImportModal";
+import { ShareModal } from "./ShareModal";
 
 export function ProfileSwitcher() {
-  const { data, activeProfile, setActiveProfile, createProfile, deleteProfile } = useApp();
+  const { data, activeProfile, setActiveProfile } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [newName, setNewName] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,13 +35,6 @@ export function ProfileSwitcher() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [menuOpen]);
-
-  function handleAdd() {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    createProfile(trimmed);
-    setNewName("");
-  }
 
   return (
     <>
@@ -87,69 +93,54 @@ export function ProfileSwitcher() {
             >
               Manage profiles…
             </button>
+            <div className="profile-switcher__divider" />
+            <button
+              type="button"
+              className="profile-switcher__item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setExportOpen(true);
+              }}
+            >
+              <span>Export data…</span>
+              <Download size={14} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="profile-switcher__item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setImportOpen(true);
+              }}
+            >
+              <span>Import data…</span>
+              <Upload size={14} aria-hidden />
+            </button>
+            <button
+              type="button"
+              className="profile-switcher__item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setShareOpen(true);
+              }}
+            >
+              <span>Share via link…</span>
+              <LinkIcon size={14} aria-hidden />
+            </button>
           </div>
         )}
       </div>
 
+      {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
+      {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
+      {shareOpen && <ShareModal onClose={() => setShareOpen(false)} />}
       {editorOpen && activeProfile && (
         <ProfileEditor profile={activeProfile} onClose={() => setEditorOpen(false)} />
       )}
-
-      <Modal open={managerOpen} onClose={() => setManagerOpen(false)} title="Profiles">
-        <div className="profile-manager">
-          <ul className="profile-manager__list">
-            {data.profiles.length === 0 && (
-              <li className="profile-manager__empty">No profiles yet</li>
-            )}
-            {data.profiles.map((profile) => (
-              <li key={profile.id} className="profile-manager__row">
-                <button
-                  type="button"
-                  className="profile-manager__name"
-                  onClick={() => setActiveProfile(profile.id)}
-                >
-                  {profile.id === activeProfile?.id && (
-                    <Check size={16} className="profile-manager__check" aria-hidden />
-                  )}
-                  <span>{profile.name}</span>
-                </button>
-                <button
-                  type="button"
-                  className="icon-button icon-button--danger"
-                  onClick={() => {
-                    if (confirm(`Delete profile "${profile.name}"? All their data will be removed.`)) {
-                      deleteProfile(profile.id);
-                    }
-                  }}
-                  aria-label={`Delete ${profile.name}`}
-                >
-                  <Trash2 size={16} aria-hidden />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="profile-manager__add">
-            <input
-              type="text"
-              className="input"
-              placeholder="New profile name"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") handleAdd();
-              }}
-            />
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={handleAdd}
-              disabled={!newName.trim()}
-            >
-              <Plus size={16} aria-hidden /> Add
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {managerOpen && <ProfileManagerView onClose={() => setManagerOpen(false)} />}
     </>
   );
 }
