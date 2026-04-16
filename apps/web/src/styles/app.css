@@ -155,8 +155,11 @@ button {
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--border);
-  /* Notch / Dynamic Island clearance when running fullscreen on iPhone */
-  padding-top: env(safe-area-inset-top);
+  /* In PWA standalone mode env() returns the full notch height; in regular
+     Safari mobile it returns 0 because the browser chrome covers the notch
+     itself. The 12px floor ensures the header never looks visually cramped
+     against the top of the viewport in either mode. */
+  padding-top: max(env(safe-area-inset-top), 12px);
 }
 
 .layout__header-row {

@@ -10,11 +10,16 @@ import {
 import type { Tab } from "../App";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { MoreMenuSheet } from "./MoreMenuSheet";
+import { MoreMenuSheet, type MobileAction } from "./MoreMenuSheet";
 
 interface LayoutProps {
   tab: Tab;
   onTabChange: (tab: Tab) => void;
+  /** Fired when the user picks an action from the mobile More sheet that
+   *  needs its own modal (edit profile, manage, export, import, share).
+   *  The modals themselves are rendered by App so they survive the More
+   *  sheet unmounting. */
+  onMobileAction?: (action: MobileAction) => void;
   children: ReactNode;
 }
 
@@ -26,8 +31,13 @@ const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
   { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
 ];
 
-export function Layout({ tab, onTabChange, children }: LayoutProps) {
+export function Layout({ tab, onTabChange, onMobileAction, children }: LayoutProps) {
   const [moreOpen, setMoreOpen] = useState(false);
+
+  function handleMobileAction(action: MobileAction) {
+    setMoreOpen(false);
+    onMobileAction?.(action);
+  }
 
   return (
     <div className="layout">
@@ -68,7 +78,12 @@ export function Layout({ tab, onTabChange, children }: LayoutProps) {
         </nav>
       </header>
       <main className="layout__main">{children}</main>
-      {moreOpen && <MoreMenuSheet onClose={() => setMoreOpen(false)} />}
+      {moreOpen && (
+        <MoreMenuSheet
+          onClose={() => setMoreOpen(false)}
+          onAction={handleMobileAction}
+        />
+      )}
     </div>
   );
 }
