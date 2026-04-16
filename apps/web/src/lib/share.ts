@@ -94,9 +94,9 @@ export async function encodeShare(
     iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
     const key = await deriveKey(passphrase, salt);
     const ciphertext = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
+      { name: "AES-GCM", iv: iv as BufferSource },
       key,
-      compressed,
+      compressed as BufferSource,
     );
     payload = new Uint8Array(ciphertext);
     encrypted = true;
@@ -154,7 +154,11 @@ export async function decodeShare(encoded: string, passphrase?: string): Promise
     const key = await deriveKey(passphrase, salt);
     let plain: ArrayBuffer;
     try {
-      plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+      plain = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv as BufferSource },
+        key,
+        ciphertext as BufferSource,
+      );
     } catch {
       throw new WrongPassphraseError();
     }
@@ -204,12 +208,12 @@ function buildShareUrl(encoded: string): string {
 // ---------------------------------------------------------------- helpers
 
 async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -222,7 +226,7 @@ async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKe
     ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: KEY_BITS },
     false,

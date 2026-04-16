@@ -145,7 +145,11 @@ export async function importFromInspect(
   const key = await deriveKey(passphrase, salt, envelope.iterations);
   let plainBuf: ArrayBuffer;
   try {
-    plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    plainBuf = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv as BufferSource },
+      key,
+      ciphertext as BufferSource,
+    );
   } catch {
     throw new WrongPassphraseError();
   }
@@ -231,7 +235,7 @@ async function deriveKey(
     ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
     baseKey,
     { name: "AES-GCM", length: KEY_BITS },
     false,
