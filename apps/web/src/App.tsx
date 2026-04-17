@@ -15,10 +15,18 @@ import { CashFlowsPage } from "./pages/CashFlowsPage";
 import { ProjectionPage } from "./pages/ProjectionPage";
 import { DayByDayPage } from "./pages/DayByDayPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
 import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
-export type Tab = "accounts" | "income" | "expenses" | "projection" | "day-by-day" | "ledger";
+export type Tab =
+  | "accounts"
+  | "income"
+  | "expenses"
+  | "projection"
+  | "day-by-day"
+  | "ledger"
+  | "dashboard";
 
 const SYNC_INTERVAL_MS = 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
@@ -169,6 +177,7 @@ function AppInner() {
         {tab === "projection" && <ProjectionPage profile={activeProfile} />}
         {tab === "day-by-day" && <DayByDayPage profile={activeProfile} />}
         {tab === "ledger" && <TransactionsPage profile={activeProfile} />}
+        {tab === "dashboard" && <DashboardPage profile={activeProfile} />}
       </Layout>
       {pendingShare && <ImportModal initialShare={pendingShare} onClose={dismissShare} />}
       {mobileModals}

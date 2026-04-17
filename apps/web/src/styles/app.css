@@ -1673,6 +1673,28 @@ button.chip--interactive:active {
   color: var(--text-secondary);
 }
 
+.budget-bar--large {
+  height: 10px;
+  margin-top: var(--space-2);
+  position: relative;
+}
+
+.budget-bar__pace {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: calc(100% + 4px);
+  background: var(--text);
+  opacity: 0.4;
+  border-radius: 1px;
+}
+
+.summary-card__of {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
 /* -------- Sync UI -------- */
 .sync-menu {
   display: flex;

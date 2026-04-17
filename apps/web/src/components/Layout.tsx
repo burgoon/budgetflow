@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import {
   CalendarDays,
+  LayoutDashboard,
   LineChart,
   List,
   MoreHorizontal,
@@ -31,6 +32,7 @@ const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
   { id: "projection", label: "Projection", Icon: LineChart },
   { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
   { id: "ledger", label: "Ledger", Icon: List },
+  { id: "dashboard", label: "Budget", Icon: LayoutDashboard },
 ];
 
 export function Layout({ tab, onTabChange, onMobileAction, children }: LayoutProps) {
