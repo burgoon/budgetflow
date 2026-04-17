@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 import { Check, Copy, Link2Off, RefreshCw, ShieldCheck } from "lucide-react";
-import type { AppData } from "../types";
 import { useApp } from "../state";
 import {
   createSync,
   getServerConfig,
   joinSync,
-  loadSyncConfig,
   saveSyncConfig,
   type SyncConfig,
 } from "../lib/sync";

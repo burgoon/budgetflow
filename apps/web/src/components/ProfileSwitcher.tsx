@@ -10,7 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useApp } from "../state";
-import { loadSyncConfig, saveSyncConfig, type SyncConfig } from "../lib/sync";
+import { loadSyncConfig, type SyncConfig } from "../lib/sync";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileManagerView } from "./ProfileManagerView";
 import { ExportModal } from "./ExportModal";
