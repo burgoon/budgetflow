@@ -4,6 +4,7 @@ import type { CashFlow, CashFlowDirection, Profile } from "../types";
 import { RECURRENCE_KIND_LABEL } from "../types";
 import { useApp } from "../state";
 import { formatCurrency } from "../lib/format";
+import { tagKey } from "../lib/tags";
 import { collectAllTags, matchesTagFilter } from "../lib/tags";
 import { groupByRecurrence, groupByTag } from "../lib/aggregations";
 import { CashFlowEditor } from "../components/CashFlowEditor";
@@ -15,7 +16,8 @@ interface Props {
 }
 
 export function CashFlowsPage({ profile, direction }: Props) {
-  const { data } = useApp();
+  const { data, activeProfile } = useApp();
+  const budgetTargets = activeProfile?.budgetTargets ?? {};
   const [editing, setEditing] = useState<CashFlow | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTagKeys, setActiveTagKeys] = useState<Set<string>>(() => new Set());
@@ -224,24 +226,58 @@ export function CashFlowsPage({ profile, direction }: Props) {
             <Tag size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> By tag
           </h3>
           <ul className="card-list">
-            {tagGroups.map((group) => (
-              <li key={group.tag}>
-                <div className="card-row card-row--static">
-                  <span className="card-row__body">
-                    <span className="card-row__title">{group.tag}</span>
-                    <span className="card-row__subtitle">
-                      {group.count} item{group.count === 1 ? "" : "s"} · monthly equivalent
+            {tagGroups.map((group) => {
+              const key = tagKey(group.tag);
+              const target = direction === "expense" ? budgetTargets[key] : undefined;
+              const spent = group.monthlyEquivalentTotal;
+              const pct = target ? (spent / target) * 100 : null;
+              const budgetTone =
+                pct === null
+                  ? ""
+                  : pct <= 80
+                    ? "budget-bar--ok"
+                    : pct <= 100
+                      ? "budget-bar--warn"
+                      : "budget-bar--over";
+              return (
+                <li key={group.tag}>
+                  <div className="card-row card-row--static">
+                    <span className="card-row__body">
+                      <span className="card-row__title">{group.tag}</span>
+                      <span className="card-row__subtitle">
+                        {group.count} item{group.count === 1 ? "" : "s"}
+                        {target != null && (
+                          <>
+                            {" · "}
+                            {formatCurrency(spent)} of {formatCurrency(target)}/mo
+                          </>
+                        )}
+                        {target == null && " · monthly equivalent"}
+                      </span>
+                      {target != null && pct != null && (
+                        <div className={`budget-bar ${budgetTone}`}>
+                          <div
+                            className="budget-bar__fill"
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      )}
                     </span>
-                  </span>
-                  <span
-                    className={`card-row__value mono ${direction === "income" ? "positive" : "negative"}`}
-                  >
-                    {sign}
-                    {formatCurrency(group.monthlyEquivalentTotal)}
-                  </span>
-                </div>
-              </li>
-            ))}
+                    <span
+                      className={`card-row__value mono ${direction === "income" ? "positive" : "negative"}`}
+                    >
+                      {sign}
+                      {formatCurrency(spent)}
+                      {target != null && (
+                        <span className="card-row__pct">
+                          {Math.round(pct!)}%
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

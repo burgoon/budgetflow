@@ -28,6 +28,10 @@ export interface Profile {
   createdAt: string;
   /** Preferred date display/entry format. Falls back to DEFAULT_DATE_FORMAT when missing. */
   dateFormat?: DateFormat;
+  /** Monthly spending targets per expense tag. Key is the normalized tag
+   *  (lowercased + trimmed); value is the target in dollars per month.
+   *  Optional — tags without a target simply don't show a progress bar. */
+  budgetTargets?: Record<string, number>;
 }
 
 export interface Account {

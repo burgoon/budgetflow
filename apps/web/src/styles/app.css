@@ -1567,6 +1567,83 @@ button.chip--interactive:active {
   :root:not([data-theme]) .stale-label { color: #ffb340; }
 }
 
+/* -------- Budget targets (profile editor) -------- */
+.budget-targets__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.budget-targets__list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.budget-targets__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.budget-targets__tag {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.budget-targets__amount {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.budget-targets__add {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.budget-targets__add .input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* -------- Budget progress bars (by-tag aggregates) -------- */
+.budget-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.budget-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.budget-bar--ok .budget-bar__fill {
+  background: var(--success);
+}
+
+.budget-bar--warn .budget-bar__fill {
+  background: #ff9f0a;
+}
+
+.budget-bar--over .budget-bar__fill {
+  background: var(--danger);
+}
+
+.card-row__pct {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
 .field__hint--danger {
   color: var(--danger);
 }
