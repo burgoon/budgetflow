@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { ArrowRightLeft, Ban, Check, Undo2 } from "lucide-react";
-import type {
-  CashFlow,
-  DateFormat,
-  OccurrenceOverride,
-  OccurrenceOverrideStatus,
-} from "../types";
+import type { CashFlow, DateFormat, OccurrenceOverride, OccurrenceOverrideStatus } from "../types";
 import { useApp } from "../state";
 import { formatCurrency, formatDate, parseDateInput } from "../lib/format";
 import type { DailyEvent } from "../lib/projection";
@@ -21,7 +16,7 @@ interface Props {
 type Mode = "actions" | "move";
 
 export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
-  const { data, updateCashFlow } = useApp();
+  const { data, updateCashFlow, createTransaction } = useApp();
   const cashFlow = data.cashFlows.find((cf) => cf.id === event.id);
 
   const [mode, setMode] = useState<Mode>("actions");
@@ -38,9 +33,7 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
 
   function applyOverride(next: OccurrenceOverride | null) {
     if (!cashFlow) return;
-    const kept = (cashFlow.overrides ?? []).filter(
-      (o) => o.scheduledDate !== event.scheduledDate,
-    );
+    const kept = (cashFlow.overrides ?? []).filter((o) => o.scheduledDate !== event.scheduledDate);
     const updated = next ? [...kept, next] : kept;
     updateCashFlow(cashFlow.id, {
       overrides: updated.length > 0 ? updated : undefined,
@@ -49,6 +42,27 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
   }
 
   function markAs(status: OccurrenceOverrideStatus) {
+    // When marking as paid, auto-create a transaction so the ledger and
+    // budget tracking pick it up. Canceled = didn't happen, no transaction.
+    if (status === "paid" && cashFlow) {
+      // Check we haven't already created one for this occurrence.
+      const alreadyLogged = data.transactions.some(
+        (t) => t.cashFlowId === cashFlow.id && t.scheduledDate === event.scheduledDate,
+      );
+      if (!alreadyLogged) {
+        createTransaction({
+          profileId: cashFlow.profileId,
+          accountId: event.accountId ?? cashFlow.accountId ?? "",
+          date: event.scheduledDate,
+          amount: event.amount,
+          direction: event.direction === "transfer" ? "expense" : event.direction,
+          name: event.name,
+          tags: cashFlow.tags,
+          cashFlowId: cashFlow.id,
+          scheduledDate: event.scheduledDate,
+        });
+      }
+    }
     applyOverride({ scheduledDate: event.scheduledDate, status });
   }
 
@@ -134,11 +148,7 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
               <DateInput value={moveTo} onChange={setMoveTo} format={dateFormat} />
             </label>
             <div className="occurrence-move__actions">
-              <button
-                type="button"
-                className="button"
-                onClick={() => setMode("actions")}
-              >
+              <button type="button" className="button" onClick={() => setMode("actions")}>
                 Back
               </button>
               <button
