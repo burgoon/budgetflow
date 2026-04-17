@@ -54,22 +54,24 @@ function projectAccount(
   const points: BalancePoint[] = [{ date: dayStart, balance }];
 
   const events = cashFlows
-    .filter((cf) => cf.accountId === account.id)
+    .filter((cf) => cashFlowTouchesAccount(cf, account.id))
     .flatMap((cf) => {
-      // yyyy-mm-dd strings parse as UTC with new Date(); parseDateInput keeps
-      // them anchored to local midnight so day semantics line up.
       const start = parseDateInput(cf.startDate);
       const end = cf.endDate ? parseDateInput(cf.endDate) : null;
       const dates = occurrencesIn(cf.recurrence, start, end, {
         start: dayStart,
         end: dayEnd,
       });
-      // Checking/savings: expenses subtract from the balance, income adds.
-      // Credit cards: the stored balance is "amount owed", so expenses INCREASE
-      // it (debt grows) and income (payments / refunds) DECREASES it. Net
-      // worth is reconciled separately in netWorthAt by sign-flipping credit.
-      const baseSigned = cf.amount * (cf.direction === "income" ? 1 : -1);
-      const signed = account.kind === "credit" ? -baseSigned : baseSigned;
+
+      // Compute the signed delta this cash flow produces on THIS account.
+      //
+      // Income / expense: straightforward sign with credit-flip.
+      //
+      // Transfers: the same cash flow touches two accounts. When we're the
+      // SOURCE (fromAccountId) we lose money; when we're the DESTINATION
+      // (toAccountId) we gain it. The credit-flip still applies so a
+      // transfer TO a credit card correctly reduces the owed balance.
+      const signed = transferSignedDelta(cf, account);
 
       const overrides = overridesByDate(cf);
       const result: { date: Date; delta: number }[] = [];
@@ -81,7 +83,6 @@ function projectAccount(
         }
         if (override.status === "moved" && override.actualDate) {
           const actual = parseDateInput(override.actualDate);
-          // Only fire if the relocated date still falls inside the window.
           if (actual.getTime() >= dayStart.getTime() && actual.getTime() <= dayEnd.getTime()) {
             result.push({ date: actual, delta: signed });
           }
@@ -157,7 +158,12 @@ export interface DailyEvent {
   name: string;
   amount: number;
   direction: CashFlowDirection;
+  /** The account this targets (income / expense). null when unassigned. */
   accountId: string | null;
+  /** Source account for transfers. */
+  fromAccountId?: string | null;
+  /** Destination account for transfers. */
+  toAccountId?: string | null;
   /** yyyy-mm-dd — the recurrence-derived scheduled date. Used as the key to
    *  match against `cashFlow.overrides`, so the UI knows which occurrence to
    *  toggle when a chip is tapped. */
@@ -165,6 +171,39 @@ export interface DailyEvent {
   /** The override that applies to this occurrence, if any. null = firing
    *  as scheduled. */
   override: OccurrenceOverride | null;
+}
+
+/** Does this cash flow affect the given account at all? */
+function cashFlowTouchesAccount(cf: CashFlow, accountId: string): boolean {
+  if (cf.direction === "transfer") {
+    return cf.fromAccountId === accountId || cf.toAccountId === accountId;
+  }
+  return cf.accountId === accountId;
+}
+
+/**
+ * Compute the signed delta this cash flow produces on a specific account.
+ *
+ * - Income / expense: base sign with credit-flip.
+ * - Transfer SOURCE (fromAccountId): money leaves → expense-like sign.
+ * - Transfer DEST (toAccountId): money arrives → income-like sign.
+ *
+ * The credit-flip ensures a transfer TO a credit card correctly reduces
+ * the owed balance, and a transfer FROM a credit card (cash advance)
+ * correctly increases it.
+ */
+function transferSignedDelta(cf: CashFlow, account: Account): number {
+  let baseSigned: number;
+  if (cf.direction === "transfer") {
+    if (cf.fromAccountId === account.id) {
+      baseSigned = -cf.amount; // money leaves — expense-like
+    } else {
+      baseSigned = cf.amount; // money arrives — income-like
+    }
+  } else {
+    baseSigned = cf.amount * (cf.direction === "income" ? 1 : -1);
+  }
+  return account.kind === "credit" ? -baseSigned : baseSigned;
 }
 
 /** Index a cash flow's overrides by their scheduledDate for O(1) lookup. */
@@ -220,9 +259,12 @@ export function dailyProjection(
     for (const event of activity) {
       // Paid / canceled overrides don't contribute to balance math, so they
       // shouldn't contribute to the day's income/expense totals either.
+      // Transfers are net-zero — they move money between accounts without
+      // creating or destroying it, so they don't count here.
       if (event.override?.status === "paid" || event.override?.status === "canceled") {
         continue;
       }
+      if (event.direction === "transfer") continue;
       if (event.direction === "income") incomeTotal += event.amount;
       else expenseTotal += event.amount;
     }
@@ -298,6 +340,8 @@ export function eventsByDay(
         amount: cashFlow.amount,
         direction: cashFlow.direction,
         accountId: cashFlow.accountId,
+        fromAccountId: cashFlow.fromAccountId,
+        toAccountId: cashFlow.toAccountId,
         scheduledDate,
         override,
       });

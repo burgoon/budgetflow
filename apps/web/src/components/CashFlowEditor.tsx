@@ -32,6 +32,12 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
   const [accountId, setAccountId] = useState<string>(
     cashFlow?.accountId ?? accounts[0]?.id ?? "",
   );
+  const [fromAccountId, setFromAccountId] = useState<string>(
+    cashFlow?.fromAccountId ?? accounts[0]?.id ?? "",
+  );
+  const [toAccountId, setToAccountId] = useState<string>(
+    cashFlow?.toAccountId ?? accounts[1]?.id ?? accounts[0]?.id ?? "",
+  );
   const [startDate, setStartDate] = useState<string>(
     cashFlow?.startDate ?? toDateInputValue(new Date()),
   );
@@ -53,11 +59,13 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
   const canSave = name.trim().length > 0;
   const label = direction === "income" ? "Income" : "Expense";
 
+  const isTransfer = direction === "transfer";
+
   function handleSave() {
     const parsedAmount = Number(amount) || 0;
-    const payload = {
+    const payload: Parameters<typeof createCashFlow>[0] = {
       profileId: profile.id,
-      accountId: accountId || null,
+      accountId: isTransfer ? null : accountId || null,
       name: name.trim(),
       amount: parsedAmount,
       direction,
@@ -65,6 +73,8 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
       endDate: hasEndDate ? endDate : null,
       recurrence,
       tags: tags.length > 0 ? tags : undefined,
+      fromAccountId: isTransfer ? fromAccountId || null : undefined,
+      toAccountId: isTransfer ? toAccountId || null : undefined,
     };
     if (cashFlow) {
       updateCashFlow(cashFlow.id, payload);
@@ -134,25 +144,66 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
           />
         </label>
 
-        <label className="field">
-          <span className="field__label">Account</span>
-          {accounts.length === 0 ? (
-            <span className="field__hint">Create an account first.</span>
-          ) : (
-            <select
-              className="input"
-              value={accountId}
-              onChange={(event) => setAccountId(event.target.value)}
-            >
-              <option value="">None</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          )}
-        </label>
+        {isTransfer ? (
+          <>
+            <label className="field">
+              <span className="field__label">From account</span>
+              {accounts.length === 0 ? (
+                <span className="field__hint">Create an account first.</span>
+              ) : (
+                <select
+                  className="input"
+                  value={fromAccountId}
+                  onChange={(event) => setFromAccountId(event.target.value)}
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+            <label className="field">
+              <span className="field__label">To account</span>
+              {accounts.length < 2 ? (
+                <span className="field__hint">Need at least two accounts for a transfer.</span>
+              ) : (
+                <select
+                  className="input"
+                  value={toAccountId}
+                  onChange={(event) => setToAccountId(event.target.value)}
+                >
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </label>
+          </>
+        ) : (
+          <label className="field">
+            <span className="field__label">Account</span>
+            {accounts.length === 0 ? (
+              <span className="field__hint">Create an account first.</span>
+            ) : (
+              <select
+                className="input"
+                value={accountId}
+                onChange={(event) => setAccountId(event.target.value)}
+              >
+                <option value="">None</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </label>
+        )}
 
         <div className="field">
           <span className="field__label">Starts</span>

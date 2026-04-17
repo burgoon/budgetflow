@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Repeat, Tag, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRightLeft, Plus, Repeat, Tag, TrendingDown, TrendingUp } from "lucide-react";
 import type { CashFlow, CashFlowDirection, Profile } from "../types";
 import { RECURRENCE_KIND_LABEL } from "../types";
 import { useApp } from "../state";
@@ -19,13 +19,21 @@ export function CashFlowsPage({ profile, direction }: Props) {
   const [editing, setEditing] = useState<CashFlow | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTagKeys, setActiveTagKeys] = useState<Set<string>>(() => new Set());
+  // Sub-view toggle for the Expenses tab — shows transfers alongside expenses.
+  const [subView, setSubView] = useState<"items" | "transfers">("items");
+  const showTransferToggle = direction === "expense";
+
+  /** The actual direction used for filtering and creating: "transfer" when
+   *  the user is on the Transfers sub-view, otherwise the page's direction. */
+  const effectiveDirection: CashFlowDirection =
+    showTransferToggle && subView === "transfers" ? "transfer" : direction;
 
   const allItems = useMemo(
     () =>
       data.cashFlows
-        .filter((cf) => cf.profileId === profile.id && cf.direction === direction)
+        .filter((cf) => cf.profileId === profile.id && cf.direction === effectiveDirection)
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [data.cashFlows, profile.id, direction],
+    [data.cashFlows, profile.id, effectiveDirection],
   );
 
   const items = useMemo(
@@ -64,22 +72,43 @@ export function CashFlowsPage({ profile, direction }: Props) {
     });
   }
 
+  const isTransferView = effectiveDirection === "transfer";
   const pageTitle = direction === "income" ? "Income" : "Expenses";
-  const Icon = direction === "income" ? TrendingUp : TrendingDown;
-  const directionLabel = direction === "income" ? "income" : "expense";
-  const sign = direction === "income" ? "+" : "−";
+  const Icon = isTransferView ? ArrowRightLeft : direction === "income" ? TrendingUp : TrendingDown;
+  const directionLabel = isTransferView ? "transfer" : direction === "income" ? "income" : "expense";
+  const sign = isTransferView ? "" : direction === "income" ? "+" : "−";
 
   return (
     <div className="page">
       <div className="page__header">
         <h2 className="page__title">{pageTitle}</h2>
-        <button
-          type="button"
-          className="button button--primary"
-          onClick={() => setCreating(true)}
-        >
-          <Plus size={16} aria-hidden /> New {directionLabel}
-        </button>
+        <div className="page__header-actions">
+          {showTransferToggle && (
+            <div className="segmented segmented--compact">
+              <button
+                type="button"
+                className={`segmented__option ${subView === "items" ? "segmented__option--active" : ""}`}
+                onClick={() => setSubView("items")}
+              >
+                Expenses
+              </button>
+              <button
+                type="button"
+                className={`segmented__option ${subView === "transfers" ? "segmented__option--active" : ""}`}
+                onClick={() => setSubView("transfers")}
+              >
+                Transfers
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setCreating(true)}
+          >
+            <Plus size={16} aria-hidden /> New {directionLabel}
+          </button>
+        </div>
       </div>
 
       {tagsInUse.length > 0 && (
@@ -125,7 +154,9 @@ export function CashFlowsPage({ profile, direction }: Props) {
                     <span className="card-row__subtitle">
                       {RECURRENCE_KIND_LABEL[cashFlow.recurrence.kind]}
                       {" · "}
-                      {account?.name ?? "No account"}
+                      {isTransferView
+                        ? transferLabel(cashFlow, accountsById)
+                        : account?.name ?? "No account"}
                     </span>
                     {cashFlow.tags && cashFlow.tags.length > 0 && (
                       <span className="card-row__tags">
@@ -148,10 +179,9 @@ export function CashFlowsPage({ profile, direction }: Props) {
         </ul>
       )}
 
-      {/* Aggregate sections: only show when there's something to aggregate.
-          By recurrence groups everything; by tag is opt-in and skipped when
-          no items have tags. */}
-      {recurrenceGroups.length > 0 && (
+      {/* Aggregate sections: skipped for transfers (they're net-zero so
+          monthly-equivalent sums aren't meaningful). */}
+      {!isTransferView && recurrenceGroups.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">
             <Repeat size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> By recurrence
@@ -188,7 +218,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
         </section>
       )}
 
-      {tagGroups.length > 0 && (
+      {!isTransferView && tagGroups.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">
             <Tag size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> By tag
@@ -219,18 +249,30 @@ export function CashFlowsPage({ profile, direction }: Props) {
       {creating && (
         <CashFlowEditor
           profile={profile}
-          direction={direction}
+          direction={effectiveDirection}
           onClose={() => setCreating(false)}
         />
       )}
       {editing && (
         <CashFlowEditor
           profile={profile}
-          direction={direction}
+          direction={editing.direction}
           cashFlow={editing}
           onClose={() => setEditing(null)}
         />
       )}
     </div>
   );
+}
+
+function transferLabel(
+  cashFlow: CashFlow,
+  accountsById: Map<string, { name: string }>,
+): string {
+  const from = cashFlow.fromAccountId ? accountsById.get(cashFlow.fromAccountId)?.name : null;
+  const to = cashFlow.toAccountId ? accountsById.get(cashFlow.toAccountId)?.name : null;
+  if (from && to) return `${from} → ${to}`;
+  if (from) return `${from} → ?`;
+  if (to) return `? → ${to}`;
+  return "No accounts";
 }

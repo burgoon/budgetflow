@@ -1,5 +1,5 @@
 export type AccountKind = "checking" | "savings" | "credit";
-export type CashFlowDirection = "income" | "expense";
+export type CashFlowDirection = "income" | "expense" | "transfer";
 export type DateFormat = "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
 
 export const DATE_FORMATS: DateFormat[] = ["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD"];
@@ -77,6 +77,10 @@ export interface CashFlow {
   /** Free-form labels shared with accounts. Stored as-typed; filtering /
    *  grouping compares case-insensitively. */
   tags?: string[];
+  /** Source account for transfers. null / absent for income and expense. */
+  fromAccountId?: string | null;
+  /** Destination account for transfers. null / absent for income and expense. */
+  toAccountId?: string | null;
 }
 
 export interface AppData {

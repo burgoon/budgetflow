@@ -1103,6 +1103,11 @@ select.input {
   color: var(--danger);
 }
 
+.chip--transfer {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+}
+
 /* Interactive chip — tappable to open the per-occurrence override menu */
 button.chip--interactive {
   border: 1px solid transparent;
