@@ -1,16 +1,22 @@
 # BudgetFlow
 
-Personal cashflow projection in the browser.
+Personal finance app — cashflow projection, budget tracking, and transaction ledger. All data lives in your browser's localStorage with optional encrypted multi-device sync.
+
+**Projection**: accounts, recurring income/expenses/transfers, quarterly cadence, per-occurrence overrides, balance replay, 365-day table, charts with toggleable series.
+
+**Budgeting**: tag-based expense categories with monthly targets, actual-vs-planned dashboard with pace markers, transaction ledger with month navigation.
+
+**Portability**: JSON export/import (optional AES-256-GCM encryption), share-via-URL (compressed + encrypted), multi-device sync (DynamoDB + Lambda relay).
 
 ## Tech
 
-| Layer    | Stack                                              |
-| -------- | -------------------------------------------------- |
-| Frontend | React 19, Vite 6, TypeScript 5                     |
-| Charts   | Recharts                                           |
-| Storage  | Browser `localStorage` (versioned schema)          |
-| Infra    | AWS CDK v2, S3, CloudFront, Route 53, ACM          |
-| Sync     | DynamoDB + Lambda + API Gateway v2 (optional)      |
+| Layer    | Stack                                         |
+| -------- | --------------------------------------------- |
+| Frontend | React 19, Vite 6, TypeScript 5                |
+| Charts   | Recharts                                      |
+| Storage  | Browser `localStorage` (versioned schema)     |
+| Infra    | AWS CDK v2, S3, CloudFront, Route 53, ACM     |
+| Sync     | DynamoDB + Lambda + API Gateway v2 (optional) |
 
 ## Development
 
@@ -68,6 +74,7 @@ npx cdk deploy \
 Without the flag, BudgetFlow is a purely static site with no backend and no server costs. The sync backend stores only encrypted blobs — all encryption happens client-side with the user's passphrase. The server never sees plaintext.
 
 Data is protected by:
+
 - **Client-side AES-256-GCM** (PBKDF2 200k iterations) — server blob is opaque
 - **API key** — stops bots (key is in `config.json`, not a security boundary)
 - **Write token** — SHA-256(passphrase + code), prevents overwriting without the passphrase
