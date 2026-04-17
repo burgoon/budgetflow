@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { Banknote, Building2, CreditCard, Plus } from "lucide-react";
+import { AlertTriangle, Banknote, Building2, CreditCard, Plus } from "lucide-react";
 import type { Account, AccountKind, Profile } from "../types";
 import { ACCOUNT_KIND_LABEL } from "../types";
 import { useApp } from "../state";
-import { formatCurrency } from "../lib/format";
+import { formatCurrency, parseDateInput } from "../lib/format";
 import { AccountEditor } from "../components/AccountEditor";
 
 const KIND_ICON: Record<AccountKind, typeof Building2> = {
@@ -11,6 +11,19 @@ const KIND_ICON: Record<AccountKind, typeof Building2> = {
   savings: Banknote,
   credit: CreditCard,
 };
+
+function daysAgo(dateStr: string): number {
+  const date = parseDateInput(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function agoLabel(days: number): string {
+  if (days <= 0) return "Updated today";
+  if (days === 1) return "Updated yesterday";
+  return `Updated ${days} days ago`;
+}
 
 export function AccountsPage({ profile }: { profile: Profile }) {
   const { data } = useApp();
@@ -23,6 +36,11 @@ export function AccountsPage({ profile }: { profile: Profile }) {
         .filter((account) => account.profileId === profile.id)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [data.accounts, profile.id],
+  );
+
+  const staleCount = useMemo(
+    () => accounts.filter((a) => daysAgo(a.startingBalanceDate) > 1).length,
+    [accounts],
   );
 
   return (
@@ -38,6 +56,19 @@ export function AccountsPage({ profile }: { profile: Profile }) {
         </button>
       </div>
 
+      {staleCount > 0 && (
+        <div className="stale-banner">
+          <AlertTriangle size={16} aria-hidden />
+          <span>
+            {staleCount === 1
+              ? "1 account balance hasn't been updated recently."
+              : `${staleCount} account balances haven't been updated recently.`}{" "}
+            Projections replay scheduled events automatically, but updating your
+            actual balances keeps things accurate.
+          </span>
+        </div>
+      )}
+
       {accounts.length === 0 ? (
         <div className="empty-state">
           <Building2 size={40} aria-hidden />
@@ -48,6 +79,8 @@ export function AccountsPage({ profile }: { profile: Profile }) {
         <ul className="card-list">
           {accounts.map((account) => {
             const Icon = KIND_ICON[account.kind];
+            const days = daysAgo(account.startingBalanceDate);
+            const isStale = days > 1;
             return (
               <li key={account.id}>
                 <button
@@ -62,6 +95,10 @@ export function AccountsPage({ profile }: { profile: Profile }) {
                     <span className="card-row__title">{account.name}</span>
                     <span className="card-row__subtitle">
                       {ACCOUNT_KIND_LABEL[account.kind]}
+                      {" · "}
+                      <span className={isStale ? "stale-label" : ""}>
+                        {agoLabel(days)}
+                      </span>
                     </span>
                     {account.tags && account.tags.length > 0 && (
                       <span className="card-row__tags">

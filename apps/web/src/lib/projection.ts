@@ -26,10 +26,12 @@ export interface AccountSeries {
  * `endDate`. The resulting series uses step semantics: between two points the
  * balance is constant, then jumps on the next event day.
  *
- * Note: this assumes `account.startingBalance` is current as of `startDate`.
- * A future iteration can replay historical cash flows from
- * `startingBalanceDate` forward to `startDate`; for v1 we trust the user
- * to keep the starting balance fresh.
+ * Each account's projection starts from `account.startingBalanceDate` (not
+ * `startDate`). If the balance date is older than `startDate`, the engine
+ * "replays" every scheduled event between the two dates so the balance at
+ * `startDate` already reflects what's happened since the user last updated.
+ * Paid / canceled overrides are honored during replay, so if the user marked
+ * an event as paid the replay doesn't double-count it.
  */
 export function projectAccounts(
   accounts: Account[],
@@ -51,7 +53,11 @@ function projectAccount(
   dayEnd: Date,
 ): AccountSeries {
   let balance = account.startingBalance;
-  const points: BalancePoint[] = [{ date: dayStart, balance }];
+
+  // Widen the event window backward to the balance date so events that
+  // fired between the last balance update and today are replayed.
+  const balanceDate = startOfDay(parseDateInput(account.startingBalanceDate));
+  const replayFrom = isBefore(balanceDate, dayStart) ? balanceDate : dayStart;
 
   const events = cashFlows
     .filter((cf) => cashFlowTouchesAccount(cf, account.id))
@@ -59,7 +65,7 @@ function projectAccount(
       const start = parseDateInput(cf.startDate);
       const end = cf.endDate ? parseDateInput(cf.endDate) : null;
       const dates = occurrencesIn(cf.recurrence, start, end, {
-        start: dayStart,
+        start: replayFrom,
         end: dayEnd,
       });
 
@@ -83,7 +89,7 @@ function projectAccount(
         }
         if (override.status === "moved" && override.actualDate) {
           const actual = parseDateInput(override.actualDate);
-          if (actual.getTime() >= dayStart.getTime() && actual.getTime() <= dayEnd.getTime()) {
+          if (actual.getTime() >= replayFrom.getTime() && actual.getTime() <= dayEnd.getTime()) {
             result.push({ date: actual, delta: signed });
           }
         }
@@ -93,7 +99,25 @@ function projectAccount(
     })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+  // Phase 1: replay past events (balanceDate → dayStart). These update the
+  // running balance but don't produce visible points — the chart and table
+  // only render from dayStart onward.
+  const dayStartTs = dayStart.getTime();
   let index = 0;
+  while (index < events.length && events[index]!.date.getTime() < dayStartTs) {
+    const dayTs = events[index]!.date.getTime();
+    let delta = 0;
+    while (index < events.length && events[index]!.date.getTime() === dayTs) {
+      delta += events[index]!.delta;
+      index++;
+    }
+    balance += delta;
+  }
+
+  // First visible point — balance now reflects the replay.
+  const points: BalancePoint[] = [{ date: dayStart, balance }];
+
+  // Phase 2: future events (dayStart → dayEnd). Same logic as before.
   while (index < events.length) {
     const dayTs = events[index]!.date.getTime();
     let delta = 0;

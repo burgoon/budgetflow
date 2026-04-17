@@ -1539,6 +1539,34 @@ button.chip--interactive:active {
   flex-wrap: wrap;
 }
 
+/* -------- Stale balance warning -------- */
+.stale-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, #ff9f0a 14%, transparent);
+  color: #cc7a00;
+  border: 1px solid color-mix(in srgb, #ff9f0a 30%, transparent);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .stale-banner { color: #ffb340; }
+}
+:root[data-theme="dark"] .stale-banner { color: #ffb340; }
+
+.stale-label {
+  color: #cc7a00;
+}
+
+:root[data-theme="dark"] .stale-label { color: #ffb340; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .stale-label { color: #ffb340; }
+}
+
 .field__hint--danger {
   color: var(--danger);
 }
