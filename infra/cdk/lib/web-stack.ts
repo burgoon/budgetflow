@@ -26,8 +26,6 @@ export interface WebStackProps extends StackProps {
     domainName: string;
     certificateArn?: string;
   };
-  /** When true, creates a DynamoDB table + Lambda + HTTP API for the
-   *  encrypted-blob sync backend. See README for details. */
   enableSync?: boolean;
 }
 
@@ -51,9 +49,7 @@ export class WebStack extends Stack {
 
     if (props.domain) {
       const parentZoneName = parentZoneOf(props.domain.domainName);
-      zone = route53.HostedZone.fromLookup(this, "Zone", {
-        domainName: parentZoneName,
-      });
+      zone = route53.HostedZone.fromLookup(this, "Zone", { domainName: parentZoneName });
       certificate = props.domain.certificateArn
         ? acm.Certificate.fromCertificateArn(this, "Certificate", props.domain.certificateArn)
         : new acm.Certificate(this, "Certificate", {
@@ -91,16 +87,6 @@ export class WebStack extends Stack {
       minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
     });
 
-    new s3deploy.BucketDeployment(this, "DeploySite", {
-      sources: [
-        s3deploy.Source.asset(path.join(__dirname, "..", "..", "..", "apps", "web", "dist")),
-      ],
-      destinationBucket: siteBucket,
-      distribution,
-      distributionPaths: ["/*"],
-      prune: true,
-    });
-
     if (props.domain && zone) {
       const recordName = subdomainOf(props.domain.domainName, zone.zoneName);
       const aliasTarget = route53.RecordTarget.fromAlias(
@@ -111,11 +97,15 @@ export class WebStack extends Stack {
     }
 
     // ---- Sync backend (optional) ----
+    // Created BEFORE the bucket deployment so the API URL can be baked
+    // into config.json as part of the same deployment — avoiding a race
+    // condition where prune: true on the main deployment deletes config.json.
+
+    const deploymentSources: s3deploy.ISource[] = [
+      s3deploy.Source.asset(path.join(__dirname, "..", "..", "..", "apps", "web", "dist")),
+    ];
 
     if (props.enableSync) {
-      // Deterministic API key — same value on every synth as long as the
-      // stack name doesn't change. Safe to expose in config.json (it's a
-      // bot-filter, not a security boundary).
       const syncApiKey = createHash("sha256")
         .update(`${this.stackName}:sync-api-key`)
         .digest("base64url")
@@ -139,7 +129,6 @@ export class WebStack extends Stack {
         memorySize: 128,
         timeout: Duration.seconds(10),
         bundling: {
-          // AWS SDK is available in the Lambda runtime — don't bundle it.
           externalModules: ["@aws-sdk/*"],
         },
       });
@@ -154,32 +143,34 @@ export class WebStack extends Stack {
         },
       });
 
-      const integration = new HttpLambdaIntegration("SyncIntegration", syncHandler);
-
       httpApi.addRoutes({
         path: "/sync/{code}",
         methods: [HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE],
-        integration,
+        integration: new HttpLambdaIntegration("SyncIntegration", syncHandler),
       });
 
-      // Deploy config.json so the frontend knows the sync API URL + key.
-      // prune: false so it doesn't nuke the rest of the bucket.
-      new s3deploy.BucketDeployment(this, "DeploySyncConfig", {
-        destinationBucket: siteBucket,
-        sources: [
-          s3deploy.Source.jsonData("config.json", {
-            syncApiUrl: httpApi.apiEndpoint,
-            syncApiKey,
-          }),
-        ],
-        distribution,
-        distributionPaths: ["/config.json"],
-        prune: false,
-      });
+      // Include config.json in the SAME deployment as the site so
+      // prune: true doesn't delete it.
+      deploymentSources.push(
+        s3deploy.Source.jsonData("config.json", {
+          syncApiUrl: httpApi.apiEndpoint,
+          syncApiKey,
+        }),
+      );
 
       new CfnOutput(this, "SyncApiUrl", { value: httpApi.apiEndpoint! });
       new CfnOutput(this, "SyncTableName", { value: syncTable.tableName });
     }
+
+    // ---- Single bucket deployment (site + optional config.json) ----
+
+    new s3deploy.BucketDeployment(this, "DeploySite", {
+      sources: deploymentSources,
+      destinationBucket: siteBucket,
+      distribution,
+      distributionPaths: ["/*"],
+      prune: true,
+    });
 
     // ---- Outputs ----
 
