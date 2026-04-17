@@ -1,21 +1,6 @@
 # BudgetFlow
 
-Personal cashflow projection in the browser. Add your accounts and starting balances, define recurring income, expenses, and transfers, and see how each account's balance evolves on a chart and in a day-by-day table. All data lives in your browser's local storage — no backend required, nothing leaves the device unless you opt in to sync.
-
-- Multiple profiles (you, partner, household)
-- Checking, savings, and credit accounts with tag-based filtering
-- Cadences: one-time, daily, weekly, 1st & 15th, monthly, quarterly, annually
-- Transfers between accounts (e.g., checking → credit card payment)
-- Per-occurrence overrides: mark paid, move to actual date, or cancel
-- Balance replay from starting-balance date (projections stay accurate even if you skip a day)
-- Projection chart with combined net-worth line and per-account toggles
-- 365-day day-by-day table with per-account or aggregate (income/expense) columns
-- Monthly budget targets per expense tag with progress bars
-- CSV export, JSON export/import (with optional AES-256-GCM encryption), share via URL link
-- Optional multi-device sync via encrypted relay (DynamoDB + Lambda)
-- Light / dark / auto theme
-- Per-profile date format (MM/DD/YYYY · DD/MM/YYYY · YYYY-MM-DD)
-- iPhone-friendly: bottom tab bar, safe-area insets, PWA / Add-to-Home-Screen
+Personal cashflow projection in the browser.
 
 ## Tech
 
@@ -23,7 +8,6 @@ Personal cashflow projection in the browser. Add your accounts and starting bala
 | -------- | -------------------------------------------------- |
 | Frontend | React 19, Vite 6, TypeScript 5                     |
 | Charts   | Recharts                                           |
-| Styling  | Plain CSS with CSS variables                       |
 | Storage  | Browser `localStorage` (versioned schema)          |
 | Infra    | AWS CDK v2, S3, CloudFront, Route 53, ACM          |
 | Sync     | DynamoDB + Lambda + API Gateway v2 (optional)      |
