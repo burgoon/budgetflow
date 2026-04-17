@@ -5,15 +5,18 @@ import {
   Download,
   Link as LinkIcon,
   Pencil,
+  RefreshCw,
   Upload,
   UserRound,
 } from "lucide-react";
 import { useApp } from "../state";
+import { loadSyncConfig, saveSyncConfig, type SyncConfig } from "../lib/sync";
 import { ProfileEditor } from "./ProfileEditor";
 import { ProfileManagerView } from "./ProfileManagerView";
 import { ExportModal } from "./ExportModal";
 import { ImportModal } from "./ImportModal";
 import { ShareModal } from "./ShareModal";
+import { SyncSetup } from "./SyncSetup";
 
 export function ProfileSwitcher() {
   const { data, activeProfile, setActiveProfile } = useApp();
@@ -23,6 +26,8 @@ export function ProfileSwitcher() {
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [syncConfig, setSyncConfig] = useState<SyncConfig | null>(() => loadSyncConfig());
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -130,6 +135,18 @@ export function ProfileSwitcher() {
               <span>Share via link…</span>
               <LinkIcon size={14} aria-hidden />
             </button>
+            <button
+              type="button"
+              className="profile-switcher__item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                setSyncOpen(true);
+              }}
+            >
+              <span>Sync devices…</span>
+              <RefreshCw size={14} aria-hidden />
+            </button>
           </div>
         )}
       </div>
@@ -137,6 +154,13 @@ export function ProfileSwitcher() {
       {exportOpen && <ExportModal onClose={() => setExportOpen(false)} />}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} />}
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)} />}
+      {syncOpen && (
+        <SyncSetup
+          syncConfig={syncConfig}
+          onSyncConfigChange={setSyncConfig}
+          onClose={() => setSyncOpen(false)}
+        />
+      )}
       {editorOpen && activeProfile && (
         <ProfileEditor profile={activeProfile} onClose={() => setEditorOpen(false)} />
       )}

@@ -3,6 +3,7 @@ import {
   Download,
   Link as LinkIcon,
   Pencil,
+  RefreshCw,
   Upload,
   UserRound,
   UsersRound,
@@ -11,7 +12,7 @@ import { useApp } from "../state";
 import { Modal } from "./Modal";
 import { ThemeSegmented } from "./ThemeSegmented";
 
-export type MobileAction = "editor" | "manager" | "export" | "import" | "share";
+export type MobileAction = "editor" | "manager" | "export" | "import" | "share" | "sync";
 
 interface Props {
   onClose: () => void;
@@ -119,6 +120,13 @@ export function MoreMenuSheet({ onClose, onAction }: Props) {
               onClick={() => fire("share")}
             >
               <LinkIcon size={16} aria-hidden /> Share via link…
+            </button>
+            <button
+              type="button"
+              className="button"
+              onClick={() => fire("sync")}
+            >
+              <RefreshCw size={16} aria-hidden /> Sync devices…
             </button>
           </div>
         </section>

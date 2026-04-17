@@ -1,16 +1,21 @@
 # BudgetFlow
 
-Personal cashflow projection in the browser. Add your accounts and starting balances, define recurring (or one-time) income and expenses, and see how each account's balance evolves on a chart and in a day-by-day table for the next 365 days. All data lives in your browser's local storage — no backend, no account, nothing leaves the device.
+Personal cashflow projection in the browser. Add your accounts and starting balances, define recurring income, expenses, and transfers, and see how each account's balance evolves on a chart and in a day-by-day table. All data lives in your browser's local storage — no backend required, nothing leaves the device unless you opt in to sync.
 
 - Multiple profiles (you, partner, household)
-- Checking, savings, and credit accounts
-- Cadences: one-time, daily, weekly, 1st & 15th, monthly, annually
+- Checking, savings, and credit accounts with tag-based filtering
+- Cadences: one-time, daily, weekly, 1st & 15th, monthly, quarterly, annually
+- Transfers between accounts (e.g., checking → credit card payment)
+- Per-occurrence overrides: mark paid, move to actual date, or cancel
+- Balance replay from starting-balance date (projections stay accurate even if you skip a day)
 - Projection chart with combined net-worth line and per-account toggles
-- 365-day day-by-day table with per-day income/expense tags
-- CSV export
+- 365-day day-by-day table with per-account or aggregate (income/expense) columns
+- Monthly budget targets per expense tag with progress bars
+- CSV export, JSON export/import (with optional AES-256-GCM encryption), share via URL link
+- Optional multi-device sync via encrypted relay (DynamoDB + Lambda)
 - Light / dark / auto theme
 - Per-profile date format (MM/DD/YYYY · DD/MM/YYYY · YYYY-MM-DD)
-- iPhone-friendly: bottom tab bar, safe-area insets, PWA / Add-to-Home-Screen support
+- iPhone-friendly: bottom tab bar, safe-area insets, PWA / Add-to-Home-Screen
 
 ## Tech
 
@@ -21,6 +26,7 @@ Personal cashflow projection in the browser. Add your accounts and starting bala
 | Styling  | Plain CSS with CSS variables                       |
 | Storage  | Browser `localStorage` (versioned schema)          |
 | Infra    | AWS CDK v2, S3, CloudFront, Route 53, ACM          |
+| Sync     | DynamoDB + Lambda + API Gateway v2 (optional)      |
 
 ## Development
 
@@ -54,7 +60,7 @@ cd infra/cdk
 npx cdk deploy -c domainName=budgetflow.example.com
 ```
 
-By default a new DNS-validated ACM certificate is minted for the domain. If a wildcard cert that covers the domain already exists in the account (e.g. a sibling stack's `*.example.com`), pass its ARN to reuse it instead of minting another:
+If a wildcard cert that covers the domain already exists in the account, pass its ARN to reuse it:
 
 ```bash
 cd infra/cdk
@@ -63,11 +69,31 @@ npx cdk deploy \
   -c certificateArn=arn:aws:acm:us-east-1:ACCOUNT:certificate/ID
 ```
 
-The certificate must be in `us-east-1` to attach to CloudFront. The stack creates both A and AAAA (IPv6) alias records pointing at the distribution.
+### Sync backend (optional)
+
+To enable multi-device sync, add `-c enableSync=true`. This creates a DynamoDB table, a Lambda function, and an HTTP API — all serverless, ~$0/month at personal scale.
+
+```bash
+cd infra/cdk
+npx cdk deploy \
+  -c domainName=budgetflow.example.com \
+  -c certificateArn=... \
+  -c enableSync=true
+```
+
+Without the flag, BudgetFlow is a purely static site with no backend and no server costs. The sync backend stores only encrypted blobs — all encryption happens client-side with the user's passphrase. The server never sees plaintext.
+
+Data is protected by:
+- **Client-side AES-256-GCM** (PBKDF2 200k iterations) — server blob is opaque
+- **API key** — stops bots (key is in `config.json`, not a security boundary)
+- **Write token** — SHA-256(passphrase + code), prevents overwriting without the passphrase
+- **DynamoDB TTL** — inactive sync slots auto-delete after 30 days
+
+In the app, open Settings → Sync devices → Create sync (generates a code + passphrase) or Join sync (enter code + passphrase from your other device). Changes push automatically and pull every 60 seconds + on app open.
 
 ### Tear down
 
-The S3 bucket uses `RemovalPolicy.RETAIN` to protect against accidental deletion of the deployed app. To fully remove the stack, empty the bucket first, then:
+The S3 bucket uses `RemovalPolicy.RETAIN` to protect against accidental deletion. To fully remove the stack, empty the bucket first, then:
 
 ```bash
 cd infra/cdk

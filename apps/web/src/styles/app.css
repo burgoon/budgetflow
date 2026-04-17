@@ -1644,6 +1644,33 @@ button.chip--interactive:active {
   color: var(--text-secondary);
 }
 
+/* -------- Sync UI -------- */
+.sync-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sync-active {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.sync-active__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sync-active__row .field__label {
+  min-width: 80px;
+}
+
 .field__hint--danger {
   color: var(--danger);
 }
