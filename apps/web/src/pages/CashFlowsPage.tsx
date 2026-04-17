@@ -4,9 +4,9 @@ import type { CashFlow, CashFlowDirection, Profile } from "../types";
 import { RECURRENCE_KIND_LABEL } from "../types";
 import { useApp } from "../state";
 import { formatCurrency } from "../lib/format";
-import { tagKey } from "../lib/tags";
 import { collectAllTags, matchesTagFilter } from "../lib/tags";
 import { groupByRecurrence, groupByTag } from "../lib/aggregations";
+import { computeBudgetActuals } from "../lib/budget";
 import { CashFlowEditor } from "../components/CashFlowEditor";
 import { TagFilterBar } from "../components/TagFilterBar";
 
@@ -65,6 +65,14 @@ export function CashFlowsPage({ profile, direction }: Props) {
   const recurrenceGroups = useMemo(() => groupByRecurrence(allItems), [allItems]);
   const tagGroups = useMemo(() => groupByTag(allItems), [allItems]);
 
+  // Budget actuals: actual expense transactions this month vs targets.
+  const now = new Date();
+  const budgetActuals = useMemo(() => {
+    if (direction !== "expense") return [];
+    const profileTxns = data.transactions.filter((t) => t.profileId === profile.id);
+    return computeBudgetActuals(profileTxns, budgetTargets, now.getFullYear(), now.getMonth());
+  }, [data.transactions, budgetTargets, profile.id, direction, now.getFullYear(), now.getMonth()]);
+
   function toggleTag(key: string) {
     setActiveTagKeys((prev) => {
       const next = new Set(prev);
@@ -77,7 +85,11 @@ export function CashFlowsPage({ profile, direction }: Props) {
   const isTransferView = effectiveDirection === "transfer";
   const pageTitle = direction === "income" ? "Income" : "Expenses";
   const Icon = isTransferView ? ArrowRightLeft : direction === "income" ? TrendingUp : TrendingDown;
-  const directionLabel = isTransferView ? "transfer" : direction === "income" ? "income" : "expense";
+  const directionLabel = isTransferView
+    ? "transfer"
+    : direction === "income"
+      ? "income"
+      : "expense";
   const sign = isTransferView ? "" : direction === "income" ? "+" : "−";
 
   return (
@@ -126,9 +138,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
         <div className="empty-state">
           <Icon size={40} aria-hidden />
           <h3>No {pageTitle.toLowerCase()} yet</h3>
-          <p>
-            Add recurring or one-time {pageTitle.toLowerCase()} to factor into your projection.
-          </p>
+          <p>Add recurring or one-time {pageTitle.toLowerCase()} to factor into your projection.</p>
         </div>
       ) : items.length === 0 ? (
         <div className="empty-state">
@@ -146,11 +156,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
                 : "card-row__value mono negative";
             return (
               <li key={cashFlow.id}>
-                <button
-                  type="button"
-                  className="card-row"
-                  onClick={() => setEditing(cashFlow)}
-                >
+                <button type="button" className="card-row" onClick={() => setEditing(cashFlow)}>
                   <span className="card-row__body">
                     <span className="card-row__title">{cashFlow.name}</span>
                     <span className="card-row__subtitle">
@@ -158,7 +164,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
                       {" · "}
                       {isTransferView
                         ? transferLabel(cashFlow, accountsById)
-                        : account?.name ?? "No account"}
+                        : (account?.name ?? "No account")}
                     </span>
                     {cashFlow.tags && cashFlow.tags.length > 0 && (
                       <span className="card-row__tags">
@@ -193,9 +199,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
               <li key={group.kind}>
                 <div className="card-row card-row--static">
                   <span className="card-row__body">
-                    <span className="card-row__title">
-                      {RECURRENCE_KIND_LABEL[group.kind]}
-                    </span>
+                    <span className="card-row__title">{RECURRENCE_KIND_LABEL[group.kind]}</span>
                     <span className="card-row__subtitle">
                       {group.count} item{group.count === 1 ? "" : "s"}
                       {group.kind !== "oneTime" && (
@@ -220,17 +224,17 @@ export function CashFlowsPage({ profile, direction }: Props) {
         </section>
       )}
 
-      {!isTransferView && tagGroups.length > 0 && (
+      {/* By tag: when on expenses and we have budget actuals (from
+          transactions), show actual-vs-target. Otherwise show the
+          monthly-equivalent from scheduled cash flows. */}
+      {!isTransferView && direction === "expense" && budgetActuals.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">
-            <Tag size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> By tag
+            <Tag size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Budget this month
           </h3>
           <ul className="card-list">
-            {tagGroups.map((group) => {
-              const key = tagKey(group.tag);
-              const target = direction === "expense" ? budgetTargets[key] : undefined;
-              const spent = group.monthlyEquivalentTotal;
-              const pct = target ? (spent / target) * 100 : null;
+            {budgetActuals.map((ba) => {
+              const pct = ba.target > 0 ? (ba.spent / ba.target) * 100 : null;
               const budgetTone =
                 pct === null
                   ? ""
@@ -240,21 +244,20 @@ export function CashFlowsPage({ profile, direction }: Props) {
                       ? "budget-bar--warn"
                       : "budget-bar--over";
               return (
-                <li key={group.tag}>
+                <li key={ba.tag}>
                   <div className="card-row card-row--static">
                     <span className="card-row__body">
-                      <span className="card-row__title">{group.tag}</span>
+                      <span className="card-row__title">{ba.displayTag}</span>
                       <span className="card-row__subtitle">
-                        {group.count} item{group.count === 1 ? "" : "s"}
-                        {target != null && (
+                        {ba.count} transaction{ba.count === 1 ? "" : "s"}
+                        {ba.target > 0 && (
                           <>
                             {" · "}
-                            {formatCurrency(spent)} of {formatCurrency(target)}/mo
+                            {formatCurrency(ba.spent)} of {formatCurrency(ba.target)}
                           </>
                         )}
-                        {target == null && " · monthly equivalent"}
                       </span>
-                      {target != null && pct != null && (
+                      {ba.target > 0 && pct != null && (
                         <div className={`budget-bar ${budgetTone}`}>
                           <div
                             className="budget-bar__fill"
@@ -263,15 +266,12 @@ export function CashFlowsPage({ profile, direction }: Props) {
                         </div>
                       )}
                     </span>
-                    <span
-                      className={`card-row__value mono ${direction === "income" ? "positive" : "negative"}`}
-                    >
-                      {sign}
-                      {formatCurrency(spent)}
-                      {target != null && (
-                        <span className="card-row__pct">
-                          {Math.round(pct!)}%
-                        </span>
+                    <span className="card-row__trail">
+                      <span className="card-row__value mono negative">
+                        −{formatCurrency(ba.spent)}
+                      </span>
+                      {ba.target > 0 && pct != null && (
+                        <span className="card-row__pct">{Math.round(pct)}%</span>
                       )}
                     </span>
                   </div>
@@ -281,6 +281,38 @@ export function CashFlowsPage({ profile, direction }: Props) {
           </ul>
         </section>
       )}
+
+      {/* Scheduled-equivalent "By tag" for income or when no budget
+          actuals yet. */}
+      {!isTransferView &&
+        (direction === "income" || budgetActuals.length === 0) &&
+        tagGroups.length > 0 && (
+          <section className="page__section">
+            <h3 className="page__subtitle">
+              <Tag size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> By tag (scheduled)
+            </h3>
+            <ul className="card-list">
+              {tagGroups.map((group) => (
+                <li key={group.tag}>
+                  <div className="card-row card-row--static">
+                    <span className="card-row__body">
+                      <span className="card-row__title">{group.tag}</span>
+                      <span className="card-row__subtitle">
+                        {group.count} item{group.count === 1 ? "" : "s"} · monthly equivalent
+                      </span>
+                    </span>
+                    <span
+                      className={`card-row__value mono ${direction === "income" ? "positive" : "negative"}`}
+                    >
+                      {sign}
+                      {formatCurrency(group.monthlyEquivalentTotal)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
       {creating && (
         <CashFlowEditor
@@ -301,10 +333,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
   );
 }
 
-function transferLabel(
-  cashFlow: CashFlow,
-  accountsById: Map<string, { name: string }>,
-): string {
+function transferLabel(cashFlow: CashFlow, accountsById: Map<string, { name: string }>): string {
   const from = cashFlow.fromAccountId ? accountsById.get(cashFlow.fromAccountId)?.name : null;
   const to = cashFlow.toAccountId ? accountsById.get(cashFlow.toAccountId)?.name : null;
   if (from && to) return `${from} → ${to}`;
