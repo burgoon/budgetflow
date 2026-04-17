@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import {
   CalendarDays,
   LineChart,
+  List,
   MoreHorizontal,
   TrendingDown,
   TrendingUp,
@@ -29,6 +30,7 @@ const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
   { id: "expenses", label: "Expenses", Icon: TrendingDown },
   { id: "projection", label: "Projection", Icon: LineChart },
   { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
+  { id: "ledger", label: "Ledger", Icon: List },
 ];
 
 export function Layout({ tab, onTabChange, onMobileAction, children }: LayoutProps) {
@@ -79,10 +81,7 @@ export function Layout({ tab, onTabChange, onMobileAction, children }: LayoutPro
       </header>
       <main className="layout__main">{children}</main>
       {moreOpen && (
-        <MoreMenuSheet
-          onClose={() => setMoreOpen(false)}
-          onAction={handleMobileAction}
-        />
+        <MoreMenuSheet onClose={() => setMoreOpen(false)} onAction={handleMobileAction} />
       )}
     </div>
   );

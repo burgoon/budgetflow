@@ -87,11 +87,35 @@ export interface CashFlow {
   toAccountId?: string | null;
 }
 
+/** A concrete record of money that actually moved — the ledger counterpart
+ *  to the forward-looking CashFlow schedule. Budget tracking measures
+ *  transactions against monthly targets, not scheduled equivalents. */
+export interface Transaction {
+  id: string;
+  profileId: string;
+  accountId: string;
+  date: string;
+  /** Always positive; direction carries the sign semantics. */
+  amount: number;
+  direction: CashFlowDirection;
+  name: string;
+  tags?: string[];
+  /** If this transaction was auto-created from a "mark as paid" override,
+   *  this links back to the originating CashFlow. */
+  cashFlowId?: string;
+  /** The scheduled occurrence date that was marked as paid to produce this
+   *  transaction. Together with cashFlowId, uniquely identifies the
+   *  occurrence so we don't double-create. */
+  scheduledDate?: string;
+  notes?: string;
+}
+
 export interface AppData {
   version: 1;
   profiles: Profile[];
   accounts: Account[];
   cashFlows: CashFlow[];
+  transactions: Transaction[];
   activeProfileId: string | null;
 }
 
@@ -100,6 +124,7 @@ export const EMPTY_APP_DATA: AppData = {
   profiles: [],
   accounts: [],
   cashFlows: [],
+  transactions: [],
   activeProfileId: null,
 };
 

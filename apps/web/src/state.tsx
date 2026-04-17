@@ -14,6 +14,7 @@ import {
   DateFormat,
   DEFAULT_DATE_FORMAT,
   Profile,
+  Transaction,
 } from "./types";
 import { loadAppData, saveAppData } from "./storage";
 import { mergeAppData } from "./lib/dataExport";
@@ -31,11 +32,10 @@ interface AppContextValue {
   createCashFlow: (input: Omit<CashFlow, "id">) => CashFlow;
   updateCashFlow: (id: string, changes: Partial<Omit<CashFlow, "id" | "profileId">>) => void;
   deleteCashFlow: (id: string) => void;
-  /** Wholesale replace — used by the import flow when the user picks
-   *  "Replace all data". Caller is responsible for any confirmation UX. */
+  createTransaction: (input: Omit<Transaction, "id">) => Transaction;
+  updateTransaction: (id: string, changes: Partial<Omit<Transaction, "id" | "profileId">>) => void;
+  deleteTransaction: (id: string) => void;
   replaceAllData: (data: AppData) => void;
-  /** Apply the imported AppData on top of the existing one. All imported
-   *  IDs are re-keyed so nothing collides with what's already there. */
   mergeImportedData: (imported: AppData) => void;
 }
 
@@ -49,8 +49,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [data]);
 
   const activeProfile = useMemo<Profile | null>(
-    () =>
-      data.profiles.find((p) => p.id === data.activeProfileId) ?? data.profiles[0] ?? null,
+    () => data.profiles.find((p) => p.id === data.activeProfileId) ?? data.profiles[0] ?? null,
     [data.profiles, data.activeProfileId],
   );
 
@@ -91,8 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         profiles: remaining,
         accounts: d.accounts.filter((a) => a.profileId !== id),
         cashFlows: d.cashFlows.filter((c) => c.profileId !== id),
-        activeProfileId:
-          d.activeProfileId === id ? (remaining[0]?.id ?? null) : d.activeProfileId,
+        activeProfileId: d.activeProfileId === id ? (remaining[0]?.id ?? null) : d.activeProfileId,
       };
     });
   }, []);
@@ -117,9 +115,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((d) => ({
       ...d,
       accounts: d.accounts.filter((a) => a.id !== id),
-      cashFlows: d.cashFlows.map((c) =>
-        c.accountId === id ? { ...c, accountId: null } : c,
-      ),
+      cashFlows: d.cashFlows.map((c) => (c.accountId === id ? { ...c, accountId: null } : c)),
     }));
   }, []);
 
@@ -143,6 +139,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((d) => ({ ...d, cashFlows: d.cashFlows.filter((c) => c.id !== id) }));
   }, []);
 
+  const createTransaction = useCallback((input: Omit<Transaction, "id">): Transaction => {
+    const txn: Transaction = { ...input, id: crypto.randomUUID() };
+    setData((d) => ({ ...d, transactions: [...d.transactions, txn] }));
+    return txn;
+  }, []);
+
+  const updateTransaction = useCallback(
+    (id: string, changes: Partial<Omit<Transaction, "id" | "profileId">>) => {
+      setData((d) => ({
+        ...d,
+        transactions: d.transactions.map((t) => (t.id === id ? { ...t, ...changes } : t)),
+      }));
+    },
+    [],
+  );
+
+  const deleteTransaction = useCallback((id: string) => {
+    setData((d) => ({
+      ...d,
+      transactions: d.transactions.filter((t) => t.id !== id),
+    }));
+  }, []);
+
   const replaceAllData = useCallback((next: AppData) => {
     setData(next);
   }, []);
@@ -164,6 +183,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     createCashFlow,
     updateCashFlow,
     deleteCashFlow,
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
     replaceAllData,
     mergeImportedData,
   };

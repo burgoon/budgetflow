@@ -1,4 +1,7 @@
-import type { Account, CashFlow } from "../types";
+/** Any entity that carries optional tags. */
+interface Taggable {
+  tags?: string[];
+}
 
 /**
  * Normalize a tag for comparison: trimmed and lowercased. Storage keeps the
@@ -27,14 +30,11 @@ export function removeTag(tags: string[], tag: string): string[] {
 }
 
 /**
- * Collect every distinct tag across the supplied accounts and cash flows.
+ * Collect every distinct tag across any number of taggable entity arrays.
  * Result is sorted alphabetically (case-insensitive) and preserves the
  * casing of the first occurrence found.
  */
-export function collectAllTags(
-  accounts: Account[],
-  cashFlows: CashFlow[],
-): string[] {
+export function collectAllTags(...lists: ReadonlyArray<readonly Taggable[]>): string[] {
   const seen = new Map<string, string>();
   function ingest(tags: string[] | undefined) {
     if (!tags) return;
@@ -45,8 +45,9 @@ export function collectAllTags(
       if (!seen.has(key)) seen.set(key, trimmed);
     }
   }
-  for (const account of accounts) ingest(account.tags);
-  for (const cashFlow of cashFlows) ingest(cashFlow.tags);
+  for (const list of lists) {
+    for (const entity of list) ingest(entity.tags);
+  }
   return Array.from(seen.values()).sort((a, b) =>
     a.localeCompare(b, undefined, { sensitivity: "base" }),
   );

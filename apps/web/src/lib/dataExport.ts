@@ -126,10 +126,7 @@ export function inspectExport(jsonText: string): InspectResult {
   };
 }
 
-export async function importFromInspect(
-  envelope: Envelope,
-  passphrase?: string,
-): Promise<AppData> {
+export async function importFromInspect(envelope: Envelope, passphrase?: string): Promise<AppData> {
   if (!envelope.encrypted) {
     if (!isAppData(envelope.data)) {
       throw new InvalidExportError("Export contains malformed data.");
@@ -203,6 +200,12 @@ export function remapImportIds(imported: AppData): AppData {
       profileId: profileMap.get(c.profileId) ?? c.profileId,
       accountId: c.accountId ? (accountMap.get(c.accountId) ?? c.accountId) : null,
     })),
+    transactions: (imported.transactions ?? []).map((t) => ({
+      ...t,
+      id: crypto.randomUUID(),
+      profileId: profileMap.get(t.profileId) ?? t.profileId,
+      accountId: accountMap.get(t.accountId) ?? t.accountId,
+    })),
     activeProfileId: null,
   };
 }
@@ -214,8 +217,7 @@ export function mergeAppData(existing: AppData, imported: AppData): AppData {
     profiles: [...existing.profiles, ...remapped.profiles],
     accounts: [...existing.accounts, ...remapped.accounts],
     cashFlows: [...existing.cashFlows, ...remapped.cashFlows],
-    // Keep the user's currently active profile selection unless they had none,
-    // in which case fall back to the first imported profile.
+    transactions: [...existing.transactions, ...remapped.transactions],
     activeProfileId: existing.activeProfileId ?? remapped.profiles[0]?.id ?? null,
   };
 }

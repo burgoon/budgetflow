@@ -8,6 +8,10 @@ export function loadAppData(): AppData {
     if (!raw) return structuredClone(EMPTY_APP_DATA);
     const parsed = JSON.parse(raw) as AppData;
     if (parsed.version !== 1) return structuredClone(EMPTY_APP_DATA);
+    // Migration: older data may lack the transactions array.
+    if (!Array.isArray(parsed.transactions)) {
+      parsed.transactions = [];
+    }
     return parsed;
   } catch (err) {
     console.warn("Failed to load BudgetFlow data from localStorage", err);

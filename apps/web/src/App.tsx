@@ -14,16 +14,11 @@ import { AccountsPage } from "./pages/AccountsPage";
 import { CashFlowsPage } from "./pages/CashFlowsPage";
 import { ProjectionPage } from "./pages/ProjectionPage";
 import { DayByDayPage } from "./pages/DayByDayPage";
+import { TransactionsPage } from "./pages/TransactionsPage";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
-import {
-  loadSyncConfig,
-  pollSync,
-  pushSync,
-  saveSyncConfig,
-  type SyncConfig,
-} from "./lib/sync";
+import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
-export type Tab = "accounts" | "income" | "expenses" | "projection" | "day-by-day";
+export type Tab = "accounts" | "income" | "expenses" | "projection" | "day-by-day" | "ledger";
 
 const SYNC_INTERVAL_MS = 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
@@ -141,9 +136,7 @@ function AppInner() {
       {mobileModal === "editor" && activeProfile && (
         <ProfileEditor profile={activeProfile} onClose={closeMobileModal} />
       )}
-      {mobileModal === "manager" && (
-        <ProfileManagerView onClose={closeMobileModal} />
-      )}
+      {mobileModal === "manager" && <ProfileManagerView onClose={closeMobileModal} />}
       {mobileModal === "export" && <ExportModal onClose={closeMobileModal} />}
       {mobileModal === "import" && <ImportModal onClose={closeMobileModal} />}
       {mobileModal === "share" && <ShareModal onClose={closeMobileModal} />}
@@ -161,9 +154,7 @@ function AppInner() {
     return (
       <>
         <EmptyProfileView />
-        {pendingShare && (
-          <ImportModal initialShare={pendingShare} onClose={dismissShare} />
-        )}
+        {pendingShare && <ImportModal initialShare={pendingShare} onClose={dismissShare} />}
         {mobileModals}
       </>
     );
@@ -174,15 +165,12 @@ function AppInner() {
       <Layout tab={tab} onTabChange={setTab} onMobileAction={setMobileModal}>
         {tab === "accounts" && <AccountsPage profile={activeProfile} />}
         {tab === "income" && <CashFlowsPage profile={activeProfile} direction="income" />}
-        {tab === "expenses" && (
-          <CashFlowsPage profile={activeProfile} direction="expense" />
-        )}
+        {tab === "expenses" && <CashFlowsPage profile={activeProfile} direction="expense" />}
         {tab === "projection" && <ProjectionPage profile={activeProfile} />}
         {tab === "day-by-day" && <DayByDayPage profile={activeProfile} />}
+        {tab === "ledger" && <TransactionsPage profile={activeProfile} />}
       </Layout>
-      {pendingShare && (
-        <ImportModal initialShare={pendingShare} onClose={dismissShare} />
-      )}
+      {pendingShare && <ImportModal initialShare={pendingShare} onClose={dismissShare} />}
       {mobileModals}
     </>
   );
