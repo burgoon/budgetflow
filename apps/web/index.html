@@ -18,8 +18,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="mobile-web-app-capable" content="yes" />
     <script>
-      // Apply theme before first paint so the user never sees the wrong palette.
       (function () {
+        // Theme: apply before first paint so the user never sees the wrong palette.
         try {
           var stored = localStorage.getItem("budgetflow:theme:v1");
           var theme =
@@ -31,6 +31,16 @@
           document.documentElement.dataset.theme = theme;
         } catch (e) {
           /* no-op */
+        }
+
+        // PWA standalone detection: iOS ignores the CSS `display-mode: standalone`
+        // media query but sets `navigator.standalone`. We check both and apply a
+        // class so CSS can target PWA mode reliably on every platform.
+        if (
+          window.navigator.standalone === true ||
+          window.matchMedia("(display-mode: standalone)").matches
+        ) {
+          document.documentElement.classList.add("pwa-standalone");
         }
       })();
     </script>

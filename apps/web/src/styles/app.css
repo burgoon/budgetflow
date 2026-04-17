@@ -1980,31 +1980,31 @@ button.chip--interactive:active {
   }
 }
 
-/* In PWA standalone mode the web view fills the entire screen, including the
-   area behind the status bar / notch. We normally rely on
-   env(safe-area-inset-top) to push the header below the notch — but if the
-   PWA was installed from an older index.html (i.e. before viewport-fit=cover
-   was in the meta viewport), env() can report 0 and the header clips under
-   the notch. A hard 54px floor covers every current iPhone's notch / Dynamic
-   Island height so the UI never hides behind it, and max() means notched
-   devices with working env() still get the real inset when it's larger. */
-@media (display-mode: standalone) {
-  .layout__header {
-    padding-top: max(env(safe-area-inset-top), 54px);
-  }
+/* PWA standalone mode: the web view fills the entire screen including the
+   area behind the status bar and notch. iOS ignores the CSS
+   `@media (display-mode: standalone)` query, so we use a JS-applied class
+   `.pwa-standalone` on <html> (set in the inline <script> in index.html
+   via `navigator.standalone` on iOS and the standard media query elsewhere).
 
-  /* Re-assert the bottom-fixed tab bar in PWA mobile. Some older iOS PWA
-     installs fail to evaluate the primary @media (max-width: 700px) rule
-     against the viewport the way Safari does, which would leave the tab
-     bar stuck in the header flow at the top of the screen. This rule
-     makes the positioning stick regardless. */
-  @media (max-width: 700px) {
-    .layout__tabs {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      top: auto;
-    }
+   54px floor covers every current iPhone notch / Dynamic Island height.
+   max() picks whichever is larger so devices with working env() still get
+   the real inset. */
+.pwa-standalone .layout__header {
+  padding-top: max(env(safe-area-inset-top), 54px);
+}
+
+.pwa-standalone .layout__tabs {
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 20px));
+}
+
+/* Re-assert bottom tabs in PWA mobile in case the primary mobile rule
+   has specificity issues in the installed web app context. */
+@media (max-width: 700px) {
+  .pwa-standalone .layout__tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
   }
 }
