@@ -1695,6 +1695,45 @@ button.chip--interactive:active {
   color: var(--text-secondary);
 }
 
+/* -------- Reconciliation -------- */
+.reconcile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  border: none;
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reconcile-btn:hover {
+  background: color-mix(in srgb, var(--primary) 24%, transparent);
+}
+
+.reconcile-delta {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.reconcile-delta__value {
+  margin: 0 0 var(--space-2);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.reconcile-delta__hint {
+  margin: 0 0 var(--space-3);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 /* -------- Sync UI -------- */
 .sync-menu {
   display: flex;

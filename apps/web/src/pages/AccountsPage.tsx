@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Banknote, Building2, CreditCard, Plus } from "lucide-react";
+import { AlertTriangle, Banknote, Building2, CreditCard, Plus, RefreshCw } from "lucide-react";
 import type { Account, AccountKind, Profile } from "../types";
 import { ACCOUNT_KIND_LABEL } from "../types";
 import { useApp } from "../state";
 import { formatCurrency, parseDateInput } from "../lib/format";
 import { AccountEditor } from "../components/AccountEditor";
+import { ReconcileModal } from "../components/ReconcileModal";
 
 const KIND_ICON: Record<AccountKind, typeof Building2> = {
   checking: Building2,
@@ -29,6 +30,7 @@ export function AccountsPage({ profile }: { profile: Profile }) {
   const { data } = useApp();
   const [editing, setEditing] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
+  const [reconciling, setReconciling] = useState<Account | null>(null);
 
   const accounts = useMemo(
     () =>
@@ -47,11 +49,7 @@ export function AccountsPage({ profile }: { profile: Profile }) {
     <div className="page">
       <div className="page__header">
         <h2 className="page__title">Accounts</h2>
-        <button
-          type="button"
-          className="button button--primary"
-          onClick={() => setCreating(true)}
-        >
+        <button type="button" className="button button--primary" onClick={() => setCreating(true)}>
           <Plus size={16} aria-hidden /> New account
         </button>
       </div>
@@ -63,8 +61,8 @@ export function AccountsPage({ profile }: { profile: Profile }) {
             {staleCount === 1
               ? "1 account balance hasn't been updated recently."
               : `${staleCount} account balances haven't been updated recently.`}{" "}
-            Projections replay scheduled events automatically, but updating your
-            actual balances keeps things accurate.
+            Projections replay scheduled events automatically, but updating your actual balances
+            keeps things accurate.
           </span>
         </div>
       )}
@@ -83,11 +81,7 @@ export function AccountsPage({ profile }: { profile: Profile }) {
             const isStale = days > 1;
             return (
               <li key={account.id}>
-                <button
-                  type="button"
-                  className="card-row"
-                  onClick={() => setEditing(account)}
-                >
+                <button type="button" className="card-row" onClick={() => setEditing(account)}>
                   <span className="card-row__icon">
                     <Icon size={20} aria-hidden />
                   </span>
@@ -96,9 +90,7 @@ export function AccountsPage({ profile }: { profile: Profile }) {
                     <span className="card-row__subtitle">
                       {ACCOUNT_KIND_LABEL[account.kind]}
                       {" · "}
-                      <span className={isStale ? "stale-label" : ""}>
-                        {agoLabel(days)}
-                      </span>
+                      <span className={isStale ? "stale-label" : ""}>{agoLabel(days)}</span>
                     </span>
                     {account.tags && account.tags.length > 0 && (
                       <span className="card-row__tags">
@@ -110,10 +102,25 @@ export function AccountsPage({ profile }: { profile: Profile }) {
                       </span>
                     )}
                   </span>
-                  <span
-                    className={`card-row__value mono ${account.startingBalance < 0 ? "negative" : ""}`}
-                  >
-                    {formatCurrency(account.startingBalance)}
+                  <span className="card-row__trail">
+                    <span
+                      className={`card-row__value mono ${account.startingBalance < 0 ? "negative" : ""}`}
+                    >
+                      {formatCurrency(account.startingBalance)}
+                    </span>
+                    {isStale && (
+                      <button
+                        type="button"
+                        className="reconcile-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReconciling(account);
+                        }}
+                        title="Reconcile this account"
+                      >
+                        <RefreshCw size={12} aria-hidden /> Reconcile
+                      </button>
+                    )}
                   </span>
                 </button>
               </li>
@@ -122,14 +129,15 @@ export function AccountsPage({ profile }: { profile: Profile }) {
         </ul>
       )}
 
-      {creating && (
-        <AccountEditor profile={profile} onClose={() => setCreating(false)} />
-      )}
+      {creating && <AccountEditor profile={profile} onClose={() => setCreating(false)} />}
       {editing && (
-        <AccountEditor
+        <AccountEditor profile={profile} account={editing} onClose={() => setEditing(null)} />
+      )}
+      {reconciling && (
+        <ReconcileModal
           profile={profile}
-          account={editing}
-          onClose={() => setEditing(null)}
+          account={reconciling}
+          onClose={() => setReconciling(null)}
         />
       )}
     </div>
