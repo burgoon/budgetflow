@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Account, AccountKind, Profile } from "../types";
 import { ACCOUNT_KIND_LABEL } from "../types";
 import { useApp, useDateFormat } from "../state";
 import { toDateInputValue } from "../lib/format";
+import { collectAllTags } from "../lib/tags";
 import { Modal } from "./Modal";
 import { DateInput } from "./DateInput";
+import { TagsInput } from "./TagsInput";
 
 interface AccountEditorProps {
   profile: Profile;
@@ -15,7 +17,7 @@ interface AccountEditorProps {
 const KINDS: AccountKind[] = ["checking", "savings", "credit"];
 
 export function AccountEditor({ profile, account, onClose }: AccountEditorProps) {
-  const { createAccount, updateAccount, deleteAccount } = useApp();
+  const { data, createAccount, updateAccount, deleteAccount } = useApp();
   const dateFormat = useDateFormat();
   const [name, setName] = useState(account?.name ?? "");
   const [kind, setKind] = useState<AccountKind>(account?.kind ?? "checking");
@@ -25,17 +27,26 @@ export function AccountEditor({ profile, account, onClose }: AccountEditorProps)
   const [startingBalanceDate, setStartingBalanceDate] = useState<string>(
     account?.startingBalanceDate ?? toDateInputValue(new Date()),
   );
+  const [tags, setTags] = useState<string[]>(account?.tags ?? []);
+
+  const tagSuggestions = useMemo(() => {
+    const profileAccounts = data.accounts.filter((a) => a.profileId === profile.id);
+    const profileCashFlows = data.cashFlows.filter((c) => c.profileId === profile.id);
+    return collectAllTags(profileAccounts, profileCashFlows);
+  }, [data, profile.id]);
 
   const canSave = name.trim().length > 0;
 
   function handleSave() {
     const parsedBalance = Number(startingBalance) || 0;
+    const cleanTags = tags.length > 0 ? tags : undefined;
     if (account) {
       updateAccount(account.id, {
         name: name.trim(),
         kind,
         startingBalance: parsedBalance,
         startingBalanceDate,
+        tags: cleanTags,
       });
     } else {
       createAccount({
@@ -44,6 +55,7 @@ export function AccountEditor({ profile, account, onClose }: AccountEditorProps)
         kind,
         startingBalance: parsedBalance,
         startingBalanceDate,
+        tags: cleanTags,
       });
     }
     onClose();
@@ -136,6 +148,20 @@ export function AccountEditor({ profile, account, onClose }: AccountEditorProps)
             onChange={setStartingBalanceDate}
             format={dateFormat}
           />
+        </div>
+
+        <div className="field">
+          <span className="field__label">Tags</span>
+          <TagsInput
+            value={tags}
+            onChange={setTags}
+            suggestions={tagSuggestions}
+            placeholder="e.g., joint, savings goal"
+          />
+          <span className="field__hint">
+            Free-form labels shared with income and expenses. Use to filter and
+            group on the Income/Expenses tabs.
+          </span>
         </div>
       </div>
     </Modal>

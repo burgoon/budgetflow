@@ -5,6 +5,8 @@ import type { DateFormat } from "../types";
 import { formatCurrency, formatDate, parseDateInput } from "../lib/format";
 import { useDateFormat } from "../state";
 
+export type TableView = "accounts" | "aggregate";
+
 function overrideTooltip(
   event: DailyEvent,
   amountLabel: string,
@@ -25,19 +27,28 @@ function overrideTooltip(
   return amountLabel;
 }
 
+/** Adds a `negative` class when the value is below zero so red coloring kicks in. */
+function balanceClass(value: number): string {
+  return `mono ${value < 0 ? "negative" : ""}`.trim();
+}
+
 interface Props {
   rows: DailyProjectionRow[];
+  /** "accounts" shows one column per account; "aggregate" collapses to a
+   *  single Income + Expenses pair. Defaults to "accounts" for back-compat. */
+  view?: TableView;
   /** When provided, each activity chip becomes a button and invokes this on
    *  tap. Used to open the per-occurrence override menu. */
   onEventClick?: (event: DailyEvent) => void;
 }
 
-export function DailyProjectionTable({ rows, onEventClick }: Props) {
+export function DailyProjectionTable({ rows, view = "accounts", onEventClick }: Props) {
   const dateFormat = useDateFormat();
   const todayTs = useMemo(() => startOfDay(new Date()).getTime(), []);
 
   if (rows.length === 0) return null;
   const accountColumns = rows[0]!.accountEnds;
+  const isAggregate = view === "aggregate";
 
   return (
     <div className="projection-table-wrapper">
@@ -47,9 +58,16 @@ export function DailyProjectionTable({ rows, onEventClick }: Props) {
             <th className="projection-table__date-col">Date</th>
             <th className="projection-table__activity-col">Activity</th>
             <th>Start</th>
-            {accountColumns.map((column) => (
-              <th key={column.accountId}>{column.accountName}</th>
-            ))}
+            {isAggregate ? (
+              <>
+                <th>Income</th>
+                <th>Expenses</th>
+              </>
+            ) : (
+              accountColumns.map((column) => (
+                <th key={column.accountId}>{column.accountName}</th>
+              ))
+            )}
             <th>End</th>
           </tr>
         </thead>
@@ -85,17 +103,14 @@ export function DailyProjectionTable({ rows, onEventClick }: Props) {
                         const amountPrefix = event.direction === "income" ? "+" : "−";
                         const amountLabel = `${amountPrefix}${formatCurrency(event.amount)}`;
                         const tooltip = overrideTooltip(event, amountLabel, dateFormat);
-                        // Key by event.id + scheduledDate + index so multiple
-                        // occurrences of the same cash flow on one day (e.g.
-                        // moved + already-scheduled-same-day) are distinct.
                         const key = `${event.id}:${event.scheduledDate}:${index}`;
-                        const className = `chip chip--${event.direction}${overrideClass}`;
+                        const chipClass = `chip chip--${event.direction}${overrideClass}`;
                         if (onEventClick) {
                           return (
                             <button
                               key={key}
                               type="button"
-                              className={`${className} chip--interactive`}
+                              className={`${chipClass} chip--interactive`}
                               title={tooltip}
                               onClick={() => onEventClick(event)}
                             >
@@ -104,7 +119,7 @@ export function DailyProjectionTable({ rows, onEventClick }: Props) {
                           );
                         }
                         return (
-                          <span key={key} className={className} title={tooltip}>
+                          <span key={key} className={chipClass} title={tooltip}>
                             {event.name}
                           </span>
                         );
@@ -112,13 +127,28 @@ export function DailyProjectionTable({ rows, onEventClick }: Props) {
                     </div>
                   )}
                 </td>
-                <td className="mono">{formatCurrency(row.starting)}</td>
-                {row.accountEnds.map((entry) => (
-                  <td key={entry.accountId} className="mono">
-                    {formatCurrency(entry.balance)}
-                  </td>
-                ))}
-                <td className="mono projection-table__end">{formatCurrency(row.ending)}</td>
+                <td className={balanceClass(row.starting)}>{formatCurrency(row.starting)}</td>
+                {isAggregate ? (
+                  <>
+                    <td className={`mono ${row.incomeTotal > 0 ? "positive" : "muted"}`}>
+                      {row.incomeTotal > 0 ? `+${formatCurrency(row.incomeTotal)}` : "—"}
+                    </td>
+                    <td className={`mono ${row.expenseTotal > 0 ? "negative" : "muted"}`}>
+                      {row.expenseTotal > 0 ? `−${formatCurrency(row.expenseTotal)}` : "—"}
+                    </td>
+                  </>
+                ) : (
+                  row.accountEnds.map((entry) => (
+                    <td key={entry.accountId} className={balanceClass(entry.balance)}>
+                      {formatCurrency(entry.balance)}
+                    </td>
+                  ))
+                )}
+                <td
+                  className={`${balanceClass(row.ending)} projection-table__end`}
+                >
+                  {formatCurrency(row.ending)}
+                </td>
               </tr>
             );
           })}

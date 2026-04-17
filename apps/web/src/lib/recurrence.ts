@@ -49,6 +49,8 @@ export function occurrencesIn(
       return semiMonthlyOccurrences(lower, upper);
     case "monthly":
       return monthlyOccurrences(recurrence.day, lower, upper);
+    case "quarterly":
+      return quarterlyOccurrences(recurrence.month, recurrence.day, lower, upper);
     case "annually":
       return annualOccurrences(recurrence.month, recurrence.day, lower, upper);
   }
@@ -101,6 +103,34 @@ function monthlyOccurrences(day: number, lower: Date, upper: Date): Date[] {
       result.push(startOfDay(candidate));
     }
     monthPointer = addMonths(monthPointer, 1);
+  }
+  return result;
+}
+
+/**
+ * Fires on `day` of `month`, then every 3 months. e.g. month=1, day=15 fires
+ * Jan 15, Apr 15, Jul 15, Oct 15. The day clamps to month length so a quarterly
+ * day=31 lands on the last day of any short month.
+ */
+function quarterlyOccurrences(
+  month: number,
+  day: number,
+  lower: Date,
+  upper: Date,
+): Date[] {
+  const result: Date[] = [];
+  const startYear = getYear(lower);
+  const endYear = getYear(upper);
+  for (let year = startYear; year <= endYear; year++) {
+    for (let offset = 0; offset < 12; offset += 3) {
+      const m = ((month - 1 + offset) % 12) + 1;
+      const monthStart = new Date(year, m - 1, 1);
+      const clamped = Math.min(day, getDaysInMonth(monthStart));
+      const candidate = new Date(year, m - 1, clamped);
+      if (!isBefore(candidate, lower) && !isAfter(candidate, upper)) {
+        result.push(startOfDay(candidate));
+      }
+    }
   }
   return result;
 }

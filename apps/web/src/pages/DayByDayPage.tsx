@@ -13,7 +13,10 @@ import {
 } from "../lib/projection";
 import { downloadCsv, toCsv } from "../lib/csv";
 import { toDateInputValue } from "../lib/format";
-import { DailyProjectionTable } from "../components/DailyProjectionTable";
+import {
+  DailyProjectionTable,
+  type TableView,
+} from "../components/DailyProjectionTable";
 import { OccurrenceActionsModal } from "../components/OccurrenceActionsModal";
 
 const PROJECTION_DAYS = 365;
@@ -22,6 +25,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
   const { data } = useApp();
   const dateFormat = useDateFormat();
   const [selectedEvent, setSelectedEvent] = useState<DailyEvent | null>(null);
+  const [view, setView] = useState<TableView>("accounts");
 
   const profileAccounts = useMemo(
     () => data.accounts.filter((account) => account.profileId === profile.id),
@@ -49,23 +53,33 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
 
   function handleExport() {
     if (rows.length === 0) return;
-    const accountHeaders = rows[0]!.accountEnds.map((a) => a.accountName);
+    const headerMid =
+      view === "aggregate"
+        ? ["Income", "Expenses"]
+        : rows[0]!.accountEnds.map((a) => a.accountName);
     const header: Array<string | number> = [
       "Date",
       "Day",
       "Activity",
       "Starting balance",
-      ...accountHeaders,
+      ...headerMid,
       "Ending balance",
     ];
     const body = rows.map((row) => {
       const activity = row.activity.map(formatEventForCsv).join("; ");
+      const middle =
+        view === "aggregate"
+          ? [
+              Number(row.incomeTotal.toFixed(2)),
+              Number(row.expenseTotal.toFixed(2)),
+            ]
+          : row.accountEnds.map((entry) => Number(entry.balance.toFixed(2)));
       return [
         toDateInputValue(row.date),
         row.date.toLocaleDateString("en-US", { weekday: "long" }),
         activity,
         Number(row.starting.toFixed(2)),
-        ...row.accountEnds.map((entry) => Number(entry.balance.toFixed(2))),
+        ...middle,
         Number(row.ending.toFixed(2)),
       ];
     });
@@ -103,11 +117,37 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
     <div className="page">
       <div className="page__header">
         <h2 className="page__title">Day-by-day</h2>
-        {canExport && (
-          <button type="button" className="button" onClick={handleExport}>
-            <Download size={16} aria-hidden /> Export CSV
-          </button>
-        )}
+        <div className="page__header-actions">
+          <div
+            className="segmented segmented--compact"
+            role="radiogroup"
+            aria-label="Table view"
+          >
+            <button
+              type="button"
+              className={`segmented__option ${view === "accounts" ? "segmented__option--active" : ""}`}
+              onClick={() => setView("accounts")}
+              aria-checked={view === "accounts"}
+              role="radio"
+            >
+              Per account
+            </button>
+            <button
+              type="button"
+              className={`segmented__option ${view === "aggregate" ? "segmented__option--active" : ""}`}
+              onClick={() => setView("aggregate")}
+              aria-checked={view === "aggregate"}
+              role="radio"
+            >
+              Aggregate
+            </button>
+          </div>
+          {canExport && (
+            <button type="button" className="button" onClick={handleExport}>
+              <Download size={16} aria-hidden /> Export CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {profileAccounts.length === 0 ? (
@@ -117,7 +157,11 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
           <p>Add at least one account to see a day-by-day breakdown.</p>
         </div>
       ) : (
-        <DailyProjectionTable rows={rows} onEventClick={setSelectedEvent} />
+        <DailyProjectionTable
+          rows={rows}
+          view={view}
+          onEventClick={setSelectedEvent}
+        />
       )}
 
       {selectedEvent && (

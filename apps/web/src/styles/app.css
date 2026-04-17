@@ -140,6 +140,10 @@ button {
   color: var(--danger);
 }
 
+.muted {
+  color: var(--text-muted);
+}
+
 /* -------- Layout -------- */
 .layout {
   min-height: 100%;
@@ -1359,6 +1363,174 @@ button.chip--interactive:active {
 .share-url__actions {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* -------- Tags: pills, input, filter bar -------- */
+
+/* Read-only display pill — used in list rows. */
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.card-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Editor input — chip + freeform text combined. */
+.tags-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tags-input__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  align-items: center;
+}
+
+.tags-input__row:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.tags-input__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.tags-input__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  border: none;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.tags-input__remove:hover {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+  opacity: 1;
+}
+
+.tags-input__field {
+  flex: 1;
+  min-width: 100px;
+  padding: 4px 4px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.tags-input__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tags-input__suggestion {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-strong);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.tags-input__suggestion:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Filter chip row — multi-select OR */
+.tag-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.tag-filter__chip {
+  padding: 4px var(--space-3);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tag-filter__chip:hover {
+  background: var(--border);
+}
+
+.tag-filter__chip--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.tag-filter__chip--active:hover {
+  background: var(--primary-strong);
+}
+
+.tag-filter__clear {
+  padding: 4px var(--space-3);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.tag-filter__clear:hover {
+  color: var(--text);
+}
+
+/* -------- Day-by-day page header: action cluster (toggle + export) -------- */
+.page__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 

@@ -9,6 +9,9 @@ export const DEFAULT_DATE_FORMAT: DateFormat = "MM/DD/YYYY";
  * All recurrence variants supported by BudgetFlow.
  * Weekdays follow the JS Date.getDay convention: 0=Sunday, 6=Saturday.
  * Months are 1-indexed (1=January) — the engine handles the Date constructor offset.
+ *
+ * `quarterly` fires on `day` of `month`, then every 3 months. e.g. month=1,
+ * day=15 → Jan 15, Apr 15, Jul 15, Oct 15.
  */
 export type Recurrence =
   | { kind: "oneTime" }
@@ -16,6 +19,7 @@ export type Recurrence =
   | { kind: "weekly"; weekday: number }
   | { kind: "semiMonthly" }
   | { kind: "monthly"; day: number }
+  | { kind: "quarterly"; month: number; day: number }
   | { kind: "annually"; month: number; day: number };
 
 export interface Profile {
@@ -38,6 +42,9 @@ export interface Account {
    */
   startingBalance: number;
   startingBalanceDate: string;
+  /** Free-form labels shared across accounts and cash flows. Stored as-typed;
+   *  filtering / grouping compares case-insensitively. */
+  tags?: string[];
 }
 
 /** Per-occurrence action on a scheduled cash flow. Lets the user override what
@@ -67,6 +74,9 @@ export interface CashFlow {
   /** Per-occurrence overrides. Absent = every firing uses the recurrence
    *  schedule as-is. Keyed inside the array by scheduledDate. */
   overrides?: OccurrenceOverride[];
+  /** Free-form labels shared with accounts. Stored as-typed; filtering /
+   *  grouping compares case-insensitively. */
+  tags?: string[];
 }
 
 export interface AppData {
@@ -97,5 +107,17 @@ export const RECURRENCE_KIND_LABEL: Record<Recurrence["kind"], string> = {
   weekly: "Weekly",
   semiMonthly: "1st & 15th",
   monthly: "Monthly",
+  quarterly: "Quarterly",
   annually: "Annually",
 };
+
+/** Recurrence kinds in display order — used by aggregate sections + pickers. */
+export const RECURRENCE_KIND_ORDER: Recurrence["kind"][] = [
+  "oneTime",
+  "daily",
+  "weekly",
+  "semiMonthly",
+  "monthly",
+  "quarterly",
+  "annually",
+];

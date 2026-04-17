@@ -63,8 +63,19 @@ export function AccountsPage({ profile }: { profile: Profile }) {
                     <span className="card-row__subtitle">
                       {ACCOUNT_KIND_LABEL[account.kind]}
                     </span>
+                    {account.tags && account.tags.length > 0 && (
+                      <span className="card-row__tags">
+                        {account.tags.map((tag) => (
+                          <span key={tag} className="tag-pill">
+                            {tag}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </span>
-                  <span className="card-row__value mono">
+                  <span
+                    className={`card-row__value mono ${account.startingBalance < 0 ? "negative" : ""}`}
+                  >
                     {formatCurrency(account.startingBalance)}
                   </span>
                 </button>

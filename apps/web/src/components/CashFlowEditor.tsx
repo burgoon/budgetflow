@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import type { CashFlow, CashFlowDirection, Profile, Recurrence } from "../types";
 import { useApp, useDateFormat } from "../state";
 import { toDateInputValue } from "../lib/format";
+import { collectAllTags } from "../lib/tags";
 import { Modal } from "./Modal";
 import { RecurrencePicker } from "./RecurrencePicker";
 import { DateInput } from "./DateInput";
+import { TagsInput } from "./TagsInput";
 
 interface Props {
   profile: Profile;
@@ -40,6 +42,13 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
   const [recurrence, setRecurrence] = useState<Recurrence>(
     cashFlow?.recurrence ?? { kind: "monthly", day: 1 },
   );
+  const [tags, setTags] = useState<string[]>(cashFlow?.tags ?? []);
+
+  const tagSuggestions = useMemo(() => {
+    const profileAccounts = data.accounts.filter((a) => a.profileId === profile.id);
+    const profileCashFlows = data.cashFlows.filter((c) => c.profileId === profile.id);
+    return collectAllTags(profileAccounts, profileCashFlows);
+  }, [data, profile.id]);
 
   const canSave = name.trim().length > 0;
   const label = direction === "income" ? "Income" : "Expense";
@@ -55,6 +64,7 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
       startDate,
       endDate: hasEndDate ? endDate : null,
       recurrence,
+      tags: tags.length > 0 ? tags : undefined,
     };
     if (cashFlow) {
       updateCashFlow(cashFlow.id, payload);
@@ -173,6 +183,16 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
         <div className="field">
           <span className="field__label">Repeats</span>
           <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+        </div>
+
+        <div className="field">
+          <span className="field__label">Tags</span>
+          <TagsInput
+            value={tags}
+            onChange={setTags}
+            suggestions={tagSuggestions}
+            placeholder="e.g., home, vehicle, subscription"
+          />
         </div>
       </div>
     </Modal>

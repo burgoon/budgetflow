@@ -1,19 +1,12 @@
 import type { Recurrence } from "../types";
-import { RECURRENCE_KIND_LABEL } from "../types";
+import { RECURRENCE_KIND_LABEL, RECURRENCE_KIND_ORDER } from "../types";
 
 interface Props {
   value: Recurrence;
   onChange: (recurrence: Recurrence) => void;
 }
 
-const KINDS: Array<Recurrence["kind"]> = [
-  "oneTime",
-  "daily",
-  "weekly",
-  "semiMonthly",
-  "monthly",
-  "annually",
-];
+const KINDS = RECURRENCE_KIND_ORDER;
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -56,11 +49,30 @@ export function RecurrencePicker({ value, onChange }: Props) {
           day: value.kind === "monthly" ? value.day : 1,
         });
         break;
+      case "quarterly":
+        onChange({
+          kind: "quarterly",
+          month:
+            value.kind === "quarterly" || value.kind === "annually" ? value.month : 1,
+          day:
+            value.kind === "quarterly" ||
+            value.kind === "annually" ||
+            value.kind === "monthly"
+              ? value.day
+              : 1,
+        });
+        break;
       case "annually":
         onChange({
           kind: "annually",
-          month: value.kind === "annually" ? value.month : 1,
-          day: value.kind === "annually" ? value.day : 1,
+          month:
+            value.kind === "annually" || value.kind === "quarterly" ? value.month : 1,
+          day:
+            value.kind === "annually" ||
+            value.kind === "quarterly" ||
+            value.kind === "monthly"
+              ? value.day
+              : 1,
         });
         break;
     }
@@ -109,6 +121,50 @@ export function RecurrencePicker({ value, onChange }: Props) {
             ))}
           </select>
         </label>
+      )}
+
+      {value.kind === "quarterly" && (
+        <>
+          <div className="recurrence-picker__row">
+            <select
+              className="input"
+              value={value.month}
+              onChange={(event) =>
+                onChange({
+                  kind: "quarterly",
+                  month: Number(event.target.value),
+                  day: value.day,
+                })
+              }
+            >
+              {MONTHS.map((label, index) => (
+                <option key={label} value={index + 1}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={value.day}
+              onChange={(event) =>
+                onChange({
+                  kind: "quarterly",
+                  month: value.month,
+                  day: Number(event.target.value),
+                })
+              }
+            >
+              {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="field__hint">
+            Fires every 3 months from {MONTHS[value.month - 1]}.
+          </span>
+        </>
       )}
 
       {value.kind === "annually" && (

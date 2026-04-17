@@ -190,6 +190,11 @@ export interface DailyProjectionRow {
   ending: number;
   accountEnds: DailyAccountBalance[];
   activity: DailyEvent[];
+  /** Sum of income amounts that fired today (positive magnitude). Excludes
+   *  paid/canceled overrides — only events that actually move balances. */
+  incomeTotal: number;
+  /** Sum of expense amounts that fired today (positive magnitude). */
+  expenseTotal: number;
 }
 
 /**
@@ -209,6 +214,18 @@ export function dailyProjection(
     const date = addDays(today, i);
     const dayTs = date.getTime();
     const entryTs = dayTs - 1;
+    const activity = events?.get(dayTs) ?? [];
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+    for (const event of activity) {
+      // Paid / canceled overrides don't contribute to balance math, so they
+      // shouldn't contribute to the day's income/expense totals either.
+      if (event.override?.status === "paid" || event.override?.status === "canceled") {
+        continue;
+      }
+      if (event.direction === "income") incomeTotal += event.amount;
+      else expenseTotal += event.amount;
+    }
     return {
       date,
       dayTs,
@@ -220,7 +237,9 @@ export function dailyProjection(
         kind: s.kind,
         balance: balanceAtTimestamp(s, dayTs),
       })),
-      activity: events?.get(dayTs) ?? [],
+      activity,
+      incomeTotal,
+      expenseTotal,
     };
   });
 }
