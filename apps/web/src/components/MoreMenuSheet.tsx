@@ -1,6 +1,7 @@
 import {
   Check,
   Download,
+  HelpCircle,
   Link as LinkIcon,
   Pencil,
   RefreshCw,
@@ -12,7 +13,7 @@ import { useApp } from "../state";
 import { Modal } from "./Modal";
 import { ThemeSegmented } from "./ThemeSegmented";
 
-export type MobileAction = "editor" | "manager" | "export" | "import" | "share" | "sync";
+export type MobileAction = "editor" | "manager" | "export" | "import" | "share" | "sync" | "help";
 
 interface Props {
   onClose: () => void;
@@ -48,18 +49,14 @@ export function MoreMenuSheet({ onClose, onAction }: Props) {
         <section className="more-menu__section">
           <h3 className="more-menu__heading">Profile</h3>
           <div className="more-menu__profiles">
-            {data.profiles.length === 0 && (
-              <div className="more-menu__empty">No profiles yet</div>
-            )}
+            {data.profiles.length === 0 && <div className="more-menu__empty">No profiles yet</div>}
             {data.profiles.map((profile) => {
               const isActive = profile.id === activeProfile?.id;
               return (
                 <button
                   key={profile.id}
                   type="button"
-                  className={`more-menu__profile ${
-                    isActive ? "more-menu__profile--active" : ""
-                  }`}
+                  className={`more-menu__profile ${isActive ? "more-menu__profile--active" : ""}`}
                   onClick={() => {
                     setActiveProfile(profile.id);
                     onClose();
@@ -74,19 +71,11 @@ export function MoreMenuSheet({ onClose, onAction }: Props) {
           </div>
           <div className="more-menu__actions">
             {activeProfile && (
-              <button
-                type="button"
-                className="button"
-                onClick={() => fire("editor")}
-              >
+              <button type="button" className="button" onClick={() => fire("editor")}>
                 <Pencil size={16} aria-hidden /> Edit active profile…
               </button>
             )}
-            <button
-              type="button"
-              className="button"
-              onClick={() => fire("manager")}
-            >
+            <button type="button" className="button" onClick={() => fire("manager")}>
               <UsersRound size={16} aria-hidden /> Manage profiles…
             </button>
           </div>
@@ -100,33 +89,20 @@ export function MoreMenuSheet({ onClose, onAction }: Props) {
         <section className="more-menu__section">
           <h3 className="more-menu__heading">Data</h3>
           <div className="more-menu__actions">
-            <button
-              type="button"
-              className="button"
-              onClick={() => fire("export")}
-            >
+            <button type="button" className="button" onClick={() => fire("export")}>
               <Download size={16} aria-hidden /> Export data…
             </button>
-            <button
-              type="button"
-              className="button"
-              onClick={() => fire("import")}
-            >
+            <button type="button" className="button" onClick={() => fire("import")}>
               <Upload size={16} aria-hidden /> Import data…
             </button>
-            <button
-              type="button"
-              className="button"
-              onClick={() => fire("share")}
-            >
+            <button type="button" className="button" onClick={() => fire("share")}>
               <LinkIcon size={16} aria-hidden /> Share via link…
             </button>
-            <button
-              type="button"
-              className="button"
-              onClick={() => fire("sync")}
-            >
+            <button type="button" className="button" onClick={() => fire("sync")}>
               <RefreshCw size={16} aria-hidden /> Sync devices…
+            </button>
+            <button type="button" className="button" onClick={() => fire("help")}>
+              <HelpCircle size={16} aria-hidden /> Help
             </button>
           </div>
         </section>

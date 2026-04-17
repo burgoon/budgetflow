@@ -16,6 +16,7 @@ import { ProjectionPage } from "./pages/ProjectionPage";
 import { DayByDayPage } from "./pages/DayByDayPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { HelpScreen } from "./components/HelpScreen";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
 import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
@@ -155,6 +156,7 @@ function AppInner() {
           onClose={closeMobileModal}
         />
       )}
+      {mobileModal === "help" && <HelpScreen onClose={closeMobileModal} />}
     </>
   );
 
