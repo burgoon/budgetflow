@@ -16,7 +16,7 @@ import {
   Profile,
   Transaction,
 } from "./types";
-import { loadAppData, saveAppData } from "./storage";
+import { loadAppData, migrateAppData, saveAppData } from "./storage";
 import { mergeAppData } from "./lib/dataExport";
 
 interface AppContextValue {
@@ -163,11 +163,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const replaceAllData = useCallback((next: AppData) => {
-    setData(next);
+    setData(migrateAppData(next));
   }, []);
 
   const mergeImportedData = useCallback((imported: AppData) => {
-    setData((d) => mergeAppData(d, imported));
+    setData((d) => migrateAppData(mergeAppData(migrateAppData(d), migrateAppData(imported))));
   }, []);
 
   const value: AppContextValue = {
