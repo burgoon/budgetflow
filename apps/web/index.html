@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
     <meta name="color-scheme" content="light dark" />
@@ -15,7 +15,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="BudgetFlow" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
     <script>
       (function () {
@@ -33,15 +33,6 @@
           /* no-op */
         }
 
-        // PWA standalone detection: iOS ignores the CSS `display-mode: standalone`
-        // media query but sets `navigator.standalone`. We check both and apply a
-        // class so CSS can target PWA mode reliably on every platform.
-        if (
-          window.navigator.standalone === true ||
-          window.matchMedia("(display-mode: standalone)").matches
-        ) {
-          document.documentElement.classList.add("pwa-standalone");
-        }
       })();
     </script>
   </head>
