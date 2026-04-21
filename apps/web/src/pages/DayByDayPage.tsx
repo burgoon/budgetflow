@@ -13,10 +13,7 @@ import {
 } from "../lib/projection";
 import { downloadCsv, toCsv } from "../lib/csv";
 import { toDateInputValue } from "../lib/format";
-import {
-  DailyProjectionTable,
-  type TableView,
-} from "../components/DailyProjectionTable";
+import { DailyProjectionTable, type TableView } from "../components/DailyProjectionTable";
 import { OccurrenceActionsModal } from "../components/OccurrenceActionsModal";
 
 const PROJECTION_DAYS = 365;
@@ -38,12 +35,20 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
 
   const series = useMemo<AccountSeries[]>(() => {
     const today = startOfDay(new Date());
-    return projectAccounts(profileAccounts, profileCashFlows, today, addDays(today, PROJECTION_DAYS - 1));
+    return projectAccounts(
+      profileAccounts,
+      profileCashFlows,
+      today,
+      addDays(today, PROJECTION_DAYS - 1),
+    );
   }, [profileAccounts, profileCashFlows]);
 
   const events = useMemo<Map<number, DailyEvent[]>>(() => {
     const today = startOfDay(new Date());
-    return eventsByDay(profileCashFlows, { start: today, end: addDays(today, PROJECTION_DAYS - 1) });
+    return eventsByDay(profileCashFlows, {
+      start: today,
+      end: addDays(today, PROJECTION_DAYS - 1),
+    });
   }, [profileCashFlows]);
 
   const rows = useMemo<DailyProjectionRow[]>(
@@ -69,10 +74,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
       const activity = row.activity.map(formatEventForCsv).join("; ");
       const middle =
         view === "aggregate"
-          ? [
-              Number(row.incomeTotal.toFixed(2)),
-              Number(row.expenseTotal.toFixed(2)),
-            ]
+          ? [Number(row.incomeTotal.toFixed(2)), Number(row.expenseTotal.toFixed(2))]
           : row.accountEnds.map((entry) => Number(entry.balance.toFixed(2)));
       return [
         toDateInputValue(row.date),
@@ -91,7 +93,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
   /**
    * Serialize a single activity chip for CSV. Mirrors the table's visual
    * treatment: active events show as name + signed amount; overridden
-   * events get a bracketed status tag so paid / canceled / moved are
+   * events get a bracketed status tag so confirmed / canceled / moved are
    * distinguishable in a spreadsheet.
    */
   function formatEventForCsv(event: DailyEvent): string {
@@ -100,8 +102,10 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
     const override = event.override;
     if (!override) return base;
     switch (override.status) {
-      case "paid":
-        return `${base} [paid]`;
+      case "confirmed":
+        return override.actualAmount !== undefined
+          ? `${base} [confirmed, actual differs from scheduled]`
+          : `${base} [confirmed]`;
       case "canceled":
         return `${base} [canceled]`;
       case "moved":
@@ -118,11 +122,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
       <div className="page__header">
         <h2 className="page__title">Day-by-day</h2>
         <div className="page__header-actions">
-          <div
-            className="segmented segmented--compact"
-            role="radiogroup"
-            aria-label="Table view"
-          >
+          <div className="segmented segmented--compact" role="radiogroup" aria-label="Table view">
             <button
               type="button"
               className={`segmented__option ${view === "accounts" ? "segmented__option--active" : ""}`}
@@ -157,11 +157,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
           <p>Add at least one account to see a day-by-day breakdown.</p>
         </div>
       ) : (
-        <DailyProjectionTable
-          rows={rows}
-          view={view}
-          onEventClick={setSelectedEvent}
-        />
+        <DailyProjectionTable rows={rows} view={view} onEventClick={setSelectedEvent} />
       )}
 
       {selectedEvent && (

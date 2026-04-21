@@ -26,13 +26,13 @@ interface LayoutProps {
 }
 
 const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
+  { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
+  { id: "projection", label: "Projection", Icon: LineChart },
   { id: "accounts", label: "Accounts", Icon: Wallet },
   { id: "income", label: "Income", Icon: TrendingUp },
   { id: "expenses", label: "Expenses", Icon: TrendingDown },
-  { id: "projection", label: "Projection", Icon: LineChart },
-  { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
   { id: "ledger", label: "Ledger", Icon: List },
-  { id: "dashboard", label: "Budget", Icon: LayoutDashboard },
 ];
 
 export function Layout({ tab, onTabChange, onMobileAction, children }: LayoutProps) {

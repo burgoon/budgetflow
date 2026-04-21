@@ -1,11 +1,5 @@
 import { addDays, isBefore, startOfDay } from "date-fns";
-import {
-  Account,
-  AccountKind,
-  CashFlow,
-  CashFlowDirection,
-  OccurrenceOverride,
-} from "../types";
+import { Account, AccountKind, CashFlow, CashFlowDirection, OccurrenceOverride } from "../types";
 import { occurrencesIn } from "./recurrence";
 import { parseDateInput, toDateInputValue } from "./format";
 
@@ -30,8 +24,8 @@ export interface AccountSeries {
  * `startDate`). If the balance date is older than `startDate`, the engine
  * "replays" every scheduled event between the two dates so the balance at
  * `startDate` already reflects what's happened since the user last updated.
- * Paid / canceled overrides are honored during replay, so if the user marked
- * an event as paid the replay doesn't double-count it.
+ * Overrides are honored during replay so confirmed amounts use the actual
+ * value, canceled events are skipped, and moved events fire on the new date.
  */
 export function projectAccounts(
   accounts: Account[],
@@ -77,7 +71,7 @@ function projectAccount(
       // SOURCE (fromAccountId) we lose money; when we're the DESTINATION
       // (toAccountId) we gain it. The credit-flip still applies so a
       // transfer TO a credit card correctly reduces the owed balance.
-      const signed = transferSignedDelta(cf, account);
+      const signed = signedDeltaFor(cf, account, cf.amount);
 
       const overrides = overridesByDate(cf);
       const result: { date: Date; delta: number }[] = [];
@@ -87,13 +81,23 @@ function projectAccount(
           result.push({ date, delta: signed });
           continue;
         }
+        if (override.status === "confirmed") {
+          // Engine counts it normally; if actualAmount differs, recompute
+          // the signed delta with the real amount.
+          const delta =
+            override.actualAmount !== undefined
+              ? signedDeltaFor(cf, account, override.actualAmount)
+              : signed;
+          result.push({ date, delta });
+          continue;
+        }
         if (override.status === "moved" && override.actualDate) {
           const actual = parseDateInput(override.actualDate);
           if (actual.getTime() >= replayFrom.getTime() && actual.getTime() <= dayEnd.getTime()) {
             result.push({ date: actual, delta: signed });
           }
         }
-        // "paid" and "canceled" are no-ops for balance math.
+        // "canceled" is a no-op for balance math.
       }
       return result;
     })
@@ -206,7 +210,8 @@ function cashFlowTouchesAccount(cf: CashFlow, accountId: string): boolean {
 }
 
 /**
- * Compute the signed delta this cash flow produces on a specific account.
+ * Compute the signed delta this cash flow produces on a specific account
+ * for an arbitrary amount (defaults to the cash flow's scheduled amount).
  *
  * - Income / expense: base sign with credit-flip.
  * - Transfer SOURCE (fromAccountId): money leaves → expense-like sign.
@@ -214,18 +219,19 @@ function cashFlowTouchesAccount(cf: CashFlow, accountId: string): boolean {
  *
  * The credit-flip ensures a transfer TO a credit card correctly reduces
  * the owed balance, and a transfer FROM a credit card (cash advance)
- * correctly increases it.
+ * correctly increases it. Passing a per-occurrence actual amount lets
+ * confirmed overrides post the real number instead of the schedule.
  */
-function transferSignedDelta(cf: CashFlow, account: Account): number {
+function signedDeltaFor(cf: CashFlow, account: Account, amount: number): number {
   let baseSigned: number;
   if (cf.direction === "transfer") {
     if (cf.fromAccountId === account.id) {
-      baseSigned = -cf.amount; // money leaves — expense-like
+      baseSigned = -amount; // money leaves — expense-like
     } else {
-      baseSigned = cf.amount; // money arrives — income-like
+      baseSigned = amount; // money arrives — income-like
     }
   } else {
-    baseSigned = cf.amount * (cf.direction === "income" ? 1 : -1);
+    baseSigned = amount * (cf.direction === "income" ? 1 : -1);
   }
   return account.kind === "credit" ? -baseSigned : baseSigned;
 }
@@ -281,13 +287,11 @@ export function dailyProjection(
     let incomeTotal = 0;
     let expenseTotal = 0;
     for (const event of activity) {
-      // Paid / canceled overrides don't contribute to balance math, so they
+      // Canceled overrides don't contribute to balance math, so they
       // shouldn't contribute to the day's income/expense totals either.
       // Transfers are net-zero — they move money between accounts without
       // creating or destroying it, so they don't count here.
-      if (event.override?.status === "paid" || event.override?.status === "canceled") {
-        continue;
-      }
+      if (event.override?.status === "canceled") continue;
       if (event.direction === "transfer") continue;
       if (event.direction === "income") incomeTotal += event.amount;
       else expenseTotal += event.amount;
@@ -358,10 +362,18 @@ export function eventsByDay(
         bucket = [];
         map.set(displayTs, bucket);
       }
+      // For confirmed-with-actualAmount, the chip shows the real amount
+      // so the table, CSV, and modal all reflect what posted, not what
+      // was scheduled.
+      const displayAmount =
+        override?.status === "confirmed" && override.actualAmount !== undefined
+          ? override.actualAmount
+          : cashFlow.amount;
+
       bucket.push({
         id: cashFlow.id,
         name: cashFlow.name,
-        amount: cashFlow.amount,
+        amount: displayAmount,
         direction: cashFlow.direction,
         accountId: cashFlow.accountId,
         fromAccountId: cashFlow.fromAccountId,

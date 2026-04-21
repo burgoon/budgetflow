@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
+import { AlertCircle } from "lucide-react";
 import type { Account, Profile } from "../types";
 import { useApp, useDateFormat } from "../state";
 import { formatCurrency, formatDate, parseDateInput, toDateInputValue } from "../lib/format";
 import { computeExpectedBalance } from "../lib/reconciliation";
+import { findNeedsAttention } from "../lib/needsAttention";
+import type { DailyEvent } from "../lib/projection";
 import { Modal } from "./Modal";
 import { TransactionEditor } from "./TransactionEditor";
 
@@ -12,17 +15,28 @@ interface Props {
   onClose: () => void;
 }
 
+function eventTouchesAccount(event: DailyEvent, accountId: string): boolean {
+  if (event.direction === "transfer") {
+    return event.fromAccountId === accountId || event.toAccountId === accountId;
+  }
+  return event.accountId === accountId;
+}
+
 /**
- * Reconciliation flow:
- * 1. Show expected balance (engine replay) vs. last known.
- * 2. User enters their real current balance.
- * 3. If delta != 0: offer to log the difference as a transaction.
- * 4. Update the account's startingBalance + date to today.
+ * Safety-net reconciliation flow. The primary correction path is the
+ * inbox (Confirm / Move / Cancel each past scheduled occurrence). If the
+ * bank balance still doesn't match after working that, this modal posts
+ * the residual delta as a single correction transaction and snaps the
+ * account's starting balance + date to today.
  */
 export function ReconcileModal({ profile, account, onClose }: Props) {
   const { data, updateAccount } = useApp();
   const dateFormat = useDateFormat();
 
+  const profileAccounts = useMemo(
+    () => data.accounts.filter((a) => a.profileId === profile.id),
+    [data.accounts, profile.id],
+  );
   const profileCashFlows = useMemo(
     () => data.cashFlows.filter((c) => c.profileId === profile.id),
     [data.cashFlows, profile.id],
@@ -33,14 +47,34 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
     [account, profileCashFlows],
   );
 
+  // Inbox items that touch this specific account. If non-zero, reconciling
+  // now would absorb their unaccounted-for activity into a single mystery
+  // delta — better to handle them individually first.
+  const pendingForAccount = useMemo(() => {
+    return findNeedsAttention(profileAccounts, profileCashFlows).filter((item) =>
+      eventTouchesAccount(item.event, account.id),
+    );
+  }, [profileAccounts, profileCashFlows, account.id]);
+
   const [actualInput, setActualInput] = useState<string>(String(expected));
-  const [logTransaction, setLogTransaction] = useState(false);
+  const [logTransaction, setLogTransaction] = useState(true);
   const [step, setStep] = useState<"enter" | "done">("enter");
 
+  const isCredit = account.kind === "credit";
   const actual = Number(actualInput) || 0;
   const delta = actual - expected;
   const hasDelta = Math.abs(delta) >= 0.01;
   const today = toDateInputValue(new Date());
+  // Credit accounts store balance as amount owed, so a higher actual means
+  // more debt (untracked expense), not income.
+  const isUntrackedIncome = isCredit ? delta < 0 : delta > 0;
+  const deltaHint = isCredit
+    ? delta > 0
+      ? "You owe more than expected — untracked charge?"
+      : "You owe less than expected — payment or refund?"
+    : delta > 0
+      ? "You have more than expected — untracked income or refund?"
+      : "You have less than expected — an expense you didn't schedule?";
 
   function handleApply() {
     // Update the account balance to the user's actual + set date to today.
@@ -62,9 +96,9 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
       <TransactionEditor
         profile={profile}
         defaults={{
-          name: delta > 0 ? "Untracked income" : "Untracked expense",
+          name: isUntrackedIncome ? "Untracked income" : "Untracked expense",
           amount: Math.abs(delta),
-          direction: delta > 0 ? "income" : "expense",
+          direction: isUntrackedIncome ? "income" : "expense",
           accountId: account.id,
           date: today,
         }}
@@ -91,6 +125,24 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
       }
     >
       <div className="form">
+        {pendingForAccount.length > 0 && (
+          <div className="reconcile-warning">
+            <span className="reconcile-warning__icon" aria-hidden>
+              <AlertCircle size={18} />
+            </span>
+            <div>
+              <p className="reconcile-warning__title">
+                {pendingForAccount.length} item{pendingForAccount.length === 1 ? "" : "s"} still
+                need attention
+              </p>
+              <p className="reconcile-warning__body">
+                Confirm, move, or cancel them in the inbox first — otherwise their unaccounted
+                activity gets absorbed into one mystery correction here.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="export-summary">
           <p className="export-summary__lead">
             Last updated{" "}
@@ -98,7 +150,7 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
             at <strong>{formatCurrency(account.startingBalance)}</strong>.
           </p>
           <p className="export-summary__lead">
-            Based on scheduled events, we expect the balance today to be{" "}
+            Based on scheduled events plus any inbox decisions, we expect the balance today to be{" "}
             <strong className="mono">{formatCurrency(expected)}</strong>.
           </p>
         </div>
@@ -114,7 +166,7 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
             onChange={(e) => setActualInput(e.target.value)}
             autoFocus
           />
-          <span className="field__hint">Check your bank account and enter the real number.</span>
+          <span className="field__hint">Open your bank, enter the real current balance.</span>
         </label>
 
         {hasDelta && (
@@ -123,11 +175,7 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
               {delta > 0 ? "+" : "−"}
               {formatCurrency(Math.abs(delta))} unaccounted
             </p>
-            <p className="reconcile-delta__hint">
-              {delta > 0
-                ? "You have more than expected — untracked income or refund?"
-                : "You have less than expected — an expense you didn't schedule?"}
-            </p>
+            <p className="reconcile-delta__hint">{deltaHint}</p>
             <label className="field field--row">
               <input
                 type="checkbox"
@@ -135,9 +183,13 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
                 onChange={(e) => setLogTransaction(e.target.checked)}
               />
               <span className="field__label">
-                Log {formatCurrency(Math.abs(delta))} as a transaction
+                Log {formatCurrency(Math.abs(delta))} as a correction transaction
               </span>
             </label>
+            <span className="field__hint">
+              Recommended — gives you a named record of what you absorbed instead of a silent
+              balance jump.
+            </span>
           </div>
         )}
 

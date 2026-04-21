@@ -5,6 +5,7 @@ import {
   Link as LinkIcon,
   Pencil,
   RefreshCw,
+  RotateCcw,
   Upload,
   UserRound,
   UsersRound,
@@ -13,7 +14,15 @@ import { useApp } from "../state";
 import { Modal } from "./Modal";
 import { ThemeSegmented } from "./ThemeSegmented";
 
-export type MobileAction = "editor" | "manager" | "export" | "import" | "share" | "sync" | "help";
+export type MobileAction =
+  | "editor"
+  | "manager"
+  | "export"
+  | "import"
+  | "share"
+  | "sync"
+  | "help"
+  | "reset";
 
 interface Props {
   onClose: () => void;
@@ -104,6 +113,11 @@ export function MoreMenuSheet({ onClose, onAction }: Props) {
             <button type="button" className="button" onClick={() => fire("help")}>
               <HelpCircle size={16} aria-hidden /> Help
             </button>
+            {activeProfile && (
+              <button type="button" className="button button--danger" onClick={() => fire("reset")}>
+                <RotateCcw size={16} aria-hidden /> Reset history…
+              </button>
+            )}
           </div>
         </section>
       </div>

@@ -7,16 +7,14 @@ import { useDateFormat } from "../state";
 
 export type TableView = "accounts" | "aggregate";
 
-function overrideTooltip(
-  event: DailyEvent,
-  amountLabel: string,
-  dateFormat: DateFormat,
-): string {
+function overrideTooltip(event: DailyEvent, amountLabel: string, dateFormat: DateFormat): string {
   const override = event.override;
   if (!override) return amountLabel;
   const scheduled = formatDate(parseDateInput(event.scheduledDate), dateFormat);
-  if (override.status === "paid") {
-    return `${amountLabel} · Paid (scheduled ${scheduled})`;
+  if (override.status === "confirmed") {
+    return override.actualAmount !== undefined
+      ? `${amountLabel} · Confirmed (scheduled ${scheduled}, actual differs)`
+      : `${amountLabel} · Confirmed`;
   }
   if (override.status === "canceled") {
     return `${amountLabel} · Canceled (scheduled ${scheduled})`;
@@ -64,9 +62,7 @@ export function DailyProjectionTable({ rows, view = "accounts", onEventClick }: 
                 <th>Expenses</th>
               </>
             ) : (
-              accountColumns.map((column) => (
-                <th key={column.accountId}>{column.accountName}</th>
-              ))
+              accountColumns.map((column) => <th key={column.accountId}>{column.accountName}</th>)
             )}
             <th>End</th>
           </tr>
@@ -144,9 +140,7 @@ export function DailyProjectionTable({ rows, view = "accounts", onEventClick }: 
                     </td>
                   ))
                 )}
-                <td
-                  className={`${balanceClass(row.ending)} projection-table__end`}
-                >
+                <td className={`${balanceClass(row.ending)} projection-table__end`}>
                   {formatCurrency(row.ending)}
                 </td>
               </tr>

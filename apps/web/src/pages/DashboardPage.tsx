@@ -4,6 +4,7 @@ import type { Profile } from "../types";
 import { useApp } from "../state";
 import { formatCurrency } from "../lib/format";
 import { computeBudgetActuals, monthProgress } from "../lib/budget";
+import { NeedsAttentionCard } from "../components/NeedsAttentionCard";
 
 export function DashboardPage({ profile }: { profile: Profile }) {
   const { data, activeProfile } = useApp();
@@ -55,6 +56,8 @@ export function DashboardPage({ profile }: { profile: Profile }) {
       <div className="page__header">
         <h2 className="page__title">Dashboard</h2>
       </div>
+
+      <NeedsAttentionCard profile={profile} />
 
       <div className="month-nav">
         <button

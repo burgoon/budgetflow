@@ -18,6 +18,13 @@ import {
 } from "./types";
 import { loadAppData, migrateAppData, saveAppData } from "./storage";
 import { mergeAppData } from "./lib/dataExport";
+import { toDateInputValue } from "./lib/format";
+
+export interface ResetHistoryOptions {
+  overrides: boolean;
+  transactions: boolean;
+  resetBalanceDates: boolean;
+}
 
 interface AppContextValue {
   data: AppData;
@@ -37,6 +44,7 @@ interface AppContextValue {
   deleteTransaction: (id: string) => void;
   replaceAllData: (data: AppData) => void;
   mergeImportedData: (imported: AppData) => void;
+  resetProfileHistory: (profileId: string, options: ResetHistoryOptions) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -170,6 +178,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((d) => migrateAppData(mergeAppData(migrateAppData(d), migrateAppData(imported))));
   }, []);
 
+  const resetProfileHistory = useCallback((profileId: string, options: ResetHistoryOptions) => {
+    const today = toDateInputValue(new Date());
+    setData((d) => ({
+      ...d,
+      cashFlows: options.overrides
+        ? d.cashFlows.map((c) => (c.profileId === profileId ? { ...c, overrides: undefined } : c))
+        : d.cashFlows,
+      transactions: options.transactions
+        ? d.transactions.filter((t) => t.profileId !== profileId)
+        : d.transactions,
+      accounts: options.resetBalanceDates
+        ? d.accounts.map((a) =>
+            a.profileId === profileId ? { ...a, startingBalanceDate: today } : a,
+          )
+        : d.accounts,
+    }));
+  }, []);
+
   const value: AppContextValue = {
     data,
     activeProfile,
@@ -188,6 +214,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteTransaction,
     replaceAllData,
     mergeImportedData,
+    resetProfileHistory,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

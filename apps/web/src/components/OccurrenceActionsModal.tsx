@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRightLeft, Ban, Check, Undo2 } from "lucide-react";
+import { ArrowRightLeft, Ban, Check, PencilLine, Undo2 } from "lucide-react";
 import type { CashFlow, DateFormat, OccurrenceOverride, OccurrenceOverrideStatus } from "../types";
 import { useApp } from "../state";
 import { formatCurrency, formatDate, parseDateInput } from "../lib/format";
@@ -13,7 +13,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Mode = "actions" | "move";
+type Mode = "actions" | "move" | "confirm-amount";
 
 export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
   const { data, updateCashFlow, createTransaction } = useApp();
@@ -25,6 +25,9 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
       ? event.override.actualDate
       : event.scheduledDate;
   const [moveTo, setMoveTo] = useState(initialMoveTo);
+  // event.amount already reflects an existing confirmed actualAmount, so it's
+  // the right default whether the user is creating or editing the override.
+  const [confirmAmount, setConfirmAmount] = useState<string>(String(event.amount));
 
   if (!cashFlow) {
     // Cash flow was deleted while the modal was open — just bail.
@@ -41,29 +44,47 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
     onClose();
   }
 
+  function logTransaction(amount: number) {
+    if (!cashFlow) return;
+    const alreadyLogged = data.transactions.some(
+      (t) => t.cashFlowId === cashFlow.id && t.scheduledDate === event.scheduledDate,
+    );
+    if (alreadyLogged) return;
+    createTransaction({
+      profileId: cashFlow.profileId,
+      accountId: event.accountId ?? cashFlow.accountId ?? "",
+      date: event.scheduledDate,
+      amount,
+      direction: event.direction === "transfer" ? "expense" : event.direction,
+      name: event.name,
+      tags: cashFlow.tags,
+      cashFlowId: cashFlow.id,
+      scheduledDate: event.scheduledDate,
+    });
+  }
+
   function markAs(status: OccurrenceOverrideStatus) {
-    // When marking as paid, auto-create a transaction so the ledger and
-    // budget tracking pick it up. Canceled = didn't happen, no transaction.
-    if (status === "paid" && cashFlow) {
-      // Check we haven't already created one for this occurrence.
-      const alreadyLogged = data.transactions.some(
-        (t) => t.cashFlowId === cashFlow.id && t.scheduledDate === event.scheduledDate,
-      );
-      if (!alreadyLogged) {
-        createTransaction({
-          profileId: cashFlow.profileId,
-          accountId: event.accountId ?? cashFlow.accountId ?? "",
-          date: event.scheduledDate,
-          amount: event.amount,
-          direction: event.direction === "transfer" ? "expense" : event.direction,
-          name: event.name,
-          tags: cashFlow.tags,
-          cashFlowId: cashFlow.id,
-          scheduledDate: event.scheduledDate,
-        });
-      }
+    // "confirmed" represents "this happened" — log a transaction so the
+    // ledger reflects it. "canceled" = didn't happen. "moved" is handled
+    // by applyMove which doesn't auto-log (the user decides to confirm at
+    // the new date as a follow-up).
+    if (status === "confirmed" && cashFlow) {
+      logTransaction(cashFlow.amount);
     }
     applyOverride({ scheduledDate: event.scheduledDate, status });
+  }
+
+  function applyConfirmWithAmount() {
+    if (!cashFlow) return;
+    const parsed = Number(confirmAmount);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    logTransaction(parsed);
+    applyOverride({
+      scheduledDate: event.scheduledDate,
+      status: "confirmed",
+      // Only persist actualAmount when it actually differs from the schedule.
+      ...(parsed !== cashFlow.amount ? { actualAmount: parsed } : {}),
+    });
   }
 
   function applyMove() {
@@ -105,28 +126,36 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
           dateFormat={dateFormat}
         />
 
-        {mode === "actions" ? (
+        {mode === "actions" && (
           <div className="occurrence-actions__list">
             <ActionRow
               icon={<Check size={18} aria-hidden />}
-              label="Mark as paid"
-              hint="Engine skips this. Use when the charge already posted and you've updated your balance."
-              active={currentStatus === "paid"}
+              label="Confirm"
+              hint="Engine counts it normally and a transaction is logged. Use when the schedule matched reality."
+              active={currentStatus === "confirmed" && event.override?.actualAmount === undefined}
               tone="success"
-              onClick={() => markAs("paid")}
+              onClick={() => markAs("confirmed")}
+            />
+            <ActionRow
+              icon={<PencilLine size={18} aria-hidden />}
+              label="Different Amount"
+              hint="Same date but the real amount differed from the schedule. Engine uses the actual."
+              active={currentStatus === "confirmed" && event.override?.actualAmount !== undefined}
+              tone="info"
+              onClick={() => setMode("confirm-amount")}
             />
             <ActionRow
               icon={<ArrowRightLeft size={18} aria-hidden />}
-              label="Move to another date…"
-              hint="Keeps the amount but fires on a different day (earlier or later than scheduled)."
+              label="Another Date"
+              hint="Same amount but fires on a different day earlier or later than scheduled."
               active={currentStatus === "moved"}
               tone="info"
               onClick={() => setMode("move")}
             />
             <ActionRow
               icon={<Ban size={18} aria-hidden />}
-              label="Cancel this occurrence"
-              hint="Engine skips this. Use when a scheduled charge didn't happen and won't."
+              label="Cancel"
+              hint="Use when a scheduled charge didn't happen and won't."
               active={currentStatus === "canceled"}
               tone="danger"
               onClick={() => markAs("canceled")}
@@ -141,7 +170,9 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
               />
             )}
           </div>
-        ) : (
+        )}
+
+        {mode === "move" && (
           <div className="occurrence-move">
             <label className="field">
               <span className="field__label">New date</span>
@@ -156,6 +187,38 @@ export function OccurrenceActionsModal({ event, dateFormat, onClose }: Props) {
                 className="button button--primary"
                 onClick={applyMove}
                 disabled={!moveTo}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode === "confirm-amount" && (
+          <div className="occurrence-move">
+            <label className="field">
+              <span className="field__label">Actual amount</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                className="input"
+                value={confirmAmount}
+                onChange={(e) => setConfirmAmount(e.target.value)}
+                autoFocus
+              />
+              <span className="field__hint">Scheduled was {formatCurrency(cashFlow.amount)}.</span>
+            </label>
+            <div className="occurrence-move__actions">
+              <button type="button" className="button" onClick={() => setMode("actions")}>
+                Back
+              </button>
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={applyConfirmWithAmount}
+                disabled={!confirmAmount || Number(confirmAmount) < 0}
               >
                 Apply
               </button>
@@ -203,7 +266,10 @@ function OccurrenceSummary({
           <div>
             <dt>Status</dt>
             <dd>
-              {currentStatus === "paid" && "Paid / processed"}
+              {currentStatus === "confirmed" &&
+                (event.override?.actualAmount !== undefined
+                  ? `Confirmed at ${formatCurrency(event.override.actualAmount)}`
+                  : "Confirmed")}
               {currentStatus === "canceled" && "Canceled"}
               {currentStatus === "moved" &&
                 (movedTo ? `Moved to ${formatDate(movedTo, dateFormat)}` : "Moved")}

@@ -7,6 +7,7 @@ import {
   Link as LinkIcon,
   Pencil,
   RefreshCw,
+  RotateCcw,
   Upload,
   UserRound,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import { ImportModal } from "./ImportModal";
 import { ShareModal } from "./ShareModal";
 import { SyncSetup } from "./SyncSetup";
 import { HelpScreen } from "./HelpScreen";
+import { ResetHistoryModal } from "./ResetHistoryModal";
 
 export function ProfileSwitcher() {
   const { data, activeProfile, setActiveProfile } = useApp();
@@ -30,6 +32,7 @@ export function ProfileSwitcher() {
   const [shareOpen, setShareOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const [syncConfig, setSyncConfig] = useState<SyncConfig | null>(() => loadSyncConfig());
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -162,6 +165,23 @@ export function ProfileSwitcher() {
               <span>Help</span>
               <HelpCircle size={14} aria-hidden />
             </button>
+            {activeProfile && (
+              <>
+                <div className="profile-switcher__divider" />
+                <button
+                  type="button"
+                  className="profile-switcher__item profile-switcher__item--danger"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setResetOpen(true);
+                  }}
+                >
+                  <span>Reset history…</span>
+                  <RotateCcw size={14} aria-hidden />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -181,6 +201,9 @@ export function ProfileSwitcher() {
       )}
       {managerOpen && <ProfileManagerView onClose={() => setManagerOpen(false)} />}
       {helpOpen && <HelpScreen onClose={() => setHelpOpen(false)} />}
+      {resetOpen && activeProfile && (
+        <ResetHistoryModal profile={activeProfile} onClose={() => setResetOpen(false)} />
+      )}
     </>
   );
 }

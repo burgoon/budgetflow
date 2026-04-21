@@ -206,8 +206,8 @@ button {
 .layout__tab {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
@@ -420,6 +420,134 @@ button {
 
 .summary-card__value.negative {
   color: var(--danger);
+}
+
+/* -------- Reconcile warning -------- */
+.reconcile-warning {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: color-mix(in srgb, #ff9f0a 12%, transparent);
+  border: 1px solid color-mix(in srgb, #ff9f0a 30%, transparent);
+  border-radius: var(--radius-md);
+  align-items: flex-start;
+}
+
+.reconcile-warning__icon {
+  display: inline-flex;
+  color: #ff9f0a;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.reconcile-warning__title {
+  margin: 0 0 var(--space-1);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.reconcile-warning__body {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* -------- Needs attention -------- */
+.needs-attention {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid #ff9f0a;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.needs-attention__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #ff9f0a;
+}
+
+.needs-attention__icon {
+  display: inline-flex;
+}
+
+.needs-attention__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.needs-attention__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.needs-attention__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.needs-attention__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s ease;
+}
+
+.needs-attention__item:hover {
+  background: var(--border);
+}
+
+.needs-attention__date {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.needs-attention__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 500;
+}
+
+.needs-attention__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: var(--border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.needs-attention__amount {
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* -------- Chart card -------- */
@@ -679,6 +807,14 @@ select.input {
 
 .profile-switcher__item:hover {
   background: var(--border);
+}
+
+.profile-switcher__item--danger {
+  color: var(--danger);
+}
+
+.profile-switcher__item--danger:hover {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 .profile-switcher__divider {
@@ -1145,9 +1281,10 @@ button.chip--interactive:active {
 /* Override states. Paid and canceled suppress balance contribution, so the
    chip is visibly inactive. Moved chips render on the relocated day with a
    subtle accent so you can tell it was shifted. */
-.chip--paid {
-  text-decoration: line-through;
-  opacity: 0.55;
+.chip--confirmed {
+  /* Subtle green inset border so the user can see at a glance which past
+     occurrences have been acknowledged vs. still need attention. */
+  box-shadow: inset 0 0 0 1px var(--success);
 }
 
 .chip--canceled {
@@ -2047,20 +2184,34 @@ button.chip--interactive:active {
     flex: 1;
     flex-direction: column;
     justify-content: center;
-    gap: 2px;
-    padding: 6px 4px;
+    gap: 0;
+    padding: 8px 2px;
     min-height: 52px;
     background: transparent;
     color: var(--text-secondary);
-    font-size: 0.65rem;
     font-weight: 500;
     border-radius: var(--radius-sm);
     min-width: 0;
   }
 
+  /* Icon-only on mobile: with 7 tabs + More, labels can't fit cleanly across
+     a phone's width without truncation. Visually hide them but keep them in
+     the accessibility tree so screen readers still announce the tab name. */
+  .layout__tab span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
   .layout__tab svg {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
 
   .layout__tab:hover {

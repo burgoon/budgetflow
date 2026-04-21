@@ -1,12 +1,6 @@
 # BudgetFlow
 
-Personal finance app — cashflow projection, budget tracking, and transaction ledger. All data lives in your browser's localStorage with optional encrypted multi-device sync.
-
-**Projection**: accounts, recurring income/expenses/transfers, quarterly cadence, per-occurrence overrides, balance replay, 365-day table, charts with toggleable series.
-
-**Budgeting**: tag-based expense categories with monthly targets, actual-vs-planned dashboard with pace markers, transaction ledger with month navigation.
-
-**Portability**: JSON export/import (optional AES-256-GCM encryption), share-via-URL (compressed + encrypted), multi-device sync (DynamoDB + Lambda relay).
+Personal finance app with cashflow projection, budget tracking, and transaction ledger. Data lives in browser with optional encrypted multi-device sync.
 
 ## Tech
 
@@ -14,9 +8,9 @@ Personal finance app — cashflow projection, budget tracking, and transaction l
 | -------- | --------------------------------------------- |
 | Frontend | React 19, Vite 6, TypeScript 5                |
 | Charts   | Recharts                                      |
-| Storage  | Browser `localStorage` (versioned schema)     |
+| Storage  | Browser `localStorage`                        |
 | Infra    | AWS CDK v2, S3, CloudFront, Route 53, ACM     |
-| Sync     | DynamoDB + Lambda + API Gateway v2 (optional) |
+| Sync     | DynamoDB + Lambda + API Gateway v2            |
 
 ## Development
 

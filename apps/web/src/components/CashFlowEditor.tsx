@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CashFlow, CashFlowDirection, Profile, Recurrence } from "../types";
 import { useApp, useDateFormat } from "../state";
 import { toDateInputValue } from "../lib/format";
+import { mostRecentFiring } from "../lib/recurrence";
 import { collectAllTags } from "../lib/tags";
 import { Modal } from "./Modal";
 import { RecurrencePicker } from "./RecurrencePicker";
 import { DateInput } from "./DateInput";
 import { TagsInput } from "./TagsInput";
+
+const DEFAULT_RECURRENCE: Recurrence = { kind: "monthly", day: 1 };
 
 interface Props {
   profile: Profile;
@@ -29,9 +32,7 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
 
   const [name, setName] = useState(cashFlow?.name ?? "");
   const [amount, setAmount] = useState<string>(cashFlow ? String(cashFlow.amount) : "0");
-  const [accountId, setAccountId] = useState<string>(
-    cashFlow?.accountId ?? accounts[0]?.id ?? "",
-  );
+  const [accountId, setAccountId] = useState<string>(cashFlow?.accountId ?? accounts[0]?.id ?? "");
   const [fromAccountId, setFromAccountId] = useState<string>(
     cashFlow?.fromAccountId ?? accounts[0]?.id ?? "",
   );
@@ -39,16 +40,29 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
     cashFlow?.toAccountId ?? accounts[1]?.id ?? accounts[0]?.id ?? "",
   );
   const [startDate, setStartDate] = useState<string>(
-    cashFlow?.startDate ?? toDateInputValue(new Date()),
+    cashFlow?.startDate ??
+      toDateInputValue(mostRecentFiring(cashFlow?.recurrence ?? DEFAULT_RECURRENCE)),
   );
+  // For new cash flows, keep startDate in sync with the chosen recurrence
+  // pattern until the user manually edits it. Avoids the "monthly 18th
+  // added on the 20th has its first firing next month" surprise.
+  const [startDateTouched, setStartDateTouched] = useState<boolean>(Boolean(cashFlow));
   const [hasEndDate, setHasEndDate] = useState<boolean>(Boolean(cashFlow?.endDate));
-  const [endDate, setEndDate] = useState<string>(
-    cashFlow?.endDate ?? toDateInputValue(new Date()),
-  );
+  const [endDate, setEndDate] = useState<string>(cashFlow?.endDate ?? toDateInputValue(new Date()));
   const [recurrence, setRecurrence] = useState<Recurrence>(
-    cashFlow?.recurrence ?? { kind: "monthly", day: 1 },
+    cashFlow?.recurrence ?? DEFAULT_RECURRENCE,
   );
   const [tags, setTags] = useState<string[]>(cashFlow?.tags ?? []);
+
+  useEffect(() => {
+    if (startDateTouched) return;
+    setStartDate(toDateInputValue(mostRecentFiring(recurrence)));
+  }, [recurrence, startDateTouched]);
+
+  function handleStartDateChange(value: string) {
+    setStartDateTouched(true);
+    setStartDate(value);
+  }
 
   const tagSuggestions = useMemo(() => {
     const profileAccounts = data.accounts.filter((a) => a.profileId === profile.id);
@@ -207,7 +221,12 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
 
         <div className="field">
           <span className="field__label">Starts</span>
-          <DateInput value={startDate} onChange={setStartDate} format={dateFormat} />
+          <DateInput value={startDate} onChange={handleStartDateChange} format={dateFormat} />
+          {!cashFlow && !startDateTouched && (
+            <span className="field__hint">
+              Defaulted to the most recent firing of this pattern. Change if it began later.
+            </span>
+          )}
         </div>
 
         <label className="field field--row">
@@ -222,12 +241,7 @@ export function CashFlowEditor({ profile, direction, cashFlow, onClose }: Props)
         {hasEndDate && (
           <div className="field">
             <span className="field__label">Ends</span>
-            <DateInput
-              value={endDate}
-              onChange={setEndDate}
-              format={dateFormat}
-              min={startDate}
-            />
+            <DateInput value={endDate} onChange={setEndDate} format={dateFormat} min={startDate} />
           </div>
         )}
 

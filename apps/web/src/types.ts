@@ -52,8 +52,13 @@ export interface Account {
 }
 
 /** Per-occurrence action on a scheduled cash flow. Lets the user override what
- *  a specific firing does without editing the underlying recurrence. */
-export type OccurrenceOverrideStatus = "paid" | "canceled" | "moved";
+ *  a specific firing does without editing the underlying recurrence.
+ *
+ *  - "confirmed": user acknowledged it happened as scheduled. Engine counts it
+ *    normally, optionally at `actualAmount` when the real number differed.
+ *  - "canceled": didn't happen, won't happen. Engine skips.
+ *  - "moved": fires on `actualDate` instead of `scheduledDate`. */
+export type OccurrenceOverrideStatus = "confirmed" | "canceled" | "moved";
 
 export interface OccurrenceOverride {
   /** yyyy-mm-dd — the originally scheduled date this override applies to. */
@@ -62,6 +67,11 @@ export interface OccurrenceOverride {
   /** yyyy-mm-dd — only populated when status === "moved". The date it
    *  actually posted (or is expected to). */
   actualDate?: string;
+  /** Only meaningful when status === "confirmed". The real amount that
+   *  posted, when it differs from the cash flow's scheduled amount. Engine
+   *  uses this in projection math; chip rendering displays it instead of
+   *  the scheduled amount. Absent = same as scheduled. */
+  actualAmount?: number;
 }
 
 export interface CashFlow {

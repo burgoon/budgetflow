@@ -10,6 +10,7 @@ import { ShareModal } from "./components/ShareModal";
 import { SyncSetup } from "./components/SyncSetup";
 import { ProfileEditor } from "./components/ProfileEditor";
 import { ProfileManagerView } from "./components/ProfileManagerView";
+import { ResetHistoryModal } from "./components/ResetHistoryModal";
 import { AccountsPage } from "./pages/AccountsPage";
 import { CashFlowsPage } from "./pages/CashFlowsPage";
 import { ProjectionPage } from "./pages/ProjectionPage";
@@ -157,6 +158,9 @@ function AppInner() {
         />
       )}
       {mobileModal === "help" && <HelpScreen onClose={closeMobileModal} />}
+      {mobileModal === "reset" && activeProfile && (
+        <ResetHistoryModal profile={activeProfile} onClose={closeMobileModal} />
+      )}
     </>
   );
 

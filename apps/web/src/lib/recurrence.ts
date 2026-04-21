@@ -112,12 +112,7 @@ function monthlyOccurrences(day: number, lower: Date, upper: Date): Date[] {
  * Jan 15, Apr 15, Jul 15, Oct 15. The day clamps to month length so a quarterly
  * day=31 lands on the last day of any short month.
  */
-function quarterlyOccurrences(
-  month: number,
-  day: number,
-  lower: Date,
-  upper: Date,
-): Date[] {
+function quarterlyOccurrences(month: number, day: number, lower: Date, upper: Date): Date[] {
   const result: Date[] = [];
   const startYear = getYear(lower);
   const endYear = getYear(upper);
@@ -156,4 +151,59 @@ function maxDate(a: Date, b: Date): Date {
 
 function minDate(a: Date, b: Date): Date {
   return isBefore(a, b) ? a : b;
+}
+
+/**
+ * The most recent firing of a recurrence on or before `today`. Used to seed
+ * a sensible startDate when creating a new cash flow — otherwise a "monthly
+ * on the 18th" added on the 20th has its first firing next month, silently
+ * skipping the past one the user expected to see.
+ *
+ * For oneTime / daily, the concept doesn't really apply — return today.
+ */
+export function mostRecentFiring(recurrence: Recurrence, today: Date = new Date()): Date {
+  const t = startOfDay(today);
+  switch (recurrence.kind) {
+    case "oneTime":
+    case "daily":
+      return t;
+    case "weekly": {
+      const offset = (getDay(t) - recurrence.weekday + 7) % 7;
+      return addDays(t, -offset);
+    }
+    case "semiMonthly": {
+      const day = t.getDate();
+      if (day >= 15) return setDate(t, 15);
+      return setDate(t, 1);
+    }
+    case "monthly": {
+      const inThisMonth = setDate(t, Math.min(recurrence.day, getDaysInMonth(t)));
+      if (!isAfter(inThisMonth, t)) return inThisMonth;
+      const lastMonth = addMonths(t, -1);
+      return setDate(lastMonth, Math.min(recurrence.day, getDaysInMonth(lastMonth)));
+    }
+    case "quarterly": {
+      const anchorMonth = recurrence.month - 1;
+      for (let back = 0; back < 12; back++) {
+        const m = addMonths(t, -back);
+        const monthIdx = m.getMonth();
+        if ((monthIdx - anchorMonth + 12) % 3 !== 0) continue;
+        const monthStart = new Date(m.getFullYear(), monthIdx, 1);
+        const day = Math.min(recurrence.day, getDaysInMonth(monthStart));
+        const fireDate = startOfDay(new Date(m.getFullYear(), monthIdx, day));
+        if (!isAfter(fireDate, t)) return fireDate;
+      }
+      return t;
+    }
+    case "annually": {
+      const monthIdx = recurrence.month - 1;
+      const thisYearStart = new Date(t.getFullYear(), monthIdx, 1);
+      const thisYearDay = Math.min(recurrence.day, getDaysInMonth(thisYearStart));
+      const thisYear = startOfDay(new Date(t.getFullYear(), monthIdx, thisYearDay));
+      if (!isAfter(thisYear, t)) return thisYear;
+      const prevYearStart = new Date(t.getFullYear() - 1, monthIdx, 1);
+      const prevYearDay = Math.min(recurrence.day, getDaysInMonth(prevYearStart));
+      return startOfDay(new Date(t.getFullYear() - 1, monthIdx, prevYearDay));
+    }
+  }
 }
