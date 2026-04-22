@@ -1,12 +1,11 @@
 import { useState, type ReactNode } from "react";
 import {
+  ArrowUpDown,
   CalendarDays,
   LayoutDashboard,
   LineChart,
   List,
   MoreHorizontal,
-  TrendingDown,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import type { Tab } from "../App";
@@ -30,8 +29,7 @@ const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
   { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
   { id: "projection", label: "Projection", Icon: LineChart },
   { id: "accounts", label: "Accounts", Icon: Wallet },
-  { id: "income", label: "Income", Icon: TrendingUp },
-  { id: "expenses", label: "Expenses", Icon: TrendingDown },
+  { id: "cashflows", label: "Cash flows", Icon: ArrowUpDown },
   { id: "ledger", label: "Ledger", Icon: List },
 ];
 

@@ -21,14 +21,7 @@ import { HelpScreen } from "./components/HelpScreen";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
 import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
-export type Tab =
-  | "accounts"
-  | "income"
-  | "expenses"
-  | "projection"
-  | "day-by-day"
-  | "ledger"
-  | "dashboard";
+export type Tab = "accounts" | "cashflows" | "projection" | "day-by-day" | "ledger" | "dashboard";
 
 const SYNC_INTERVAL_MS = 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
@@ -178,8 +171,7 @@ function AppInner() {
     <>
       <Layout tab={tab} onTabChange={setTab} onMobileAction={setMobileModal}>
         {tab === "accounts" && <AccountsPage profile={activeProfile} />}
-        {tab === "income" && <CashFlowsPage profile={activeProfile} direction="income" />}
-        {tab === "expenses" && <CashFlowsPage profile={activeProfile} direction="expense" />}
+        {tab === "cashflows" && <CashFlowsPage profile={activeProfile} />}
         {tab === "projection" && <ProjectionPage profile={activeProfile} />}
         {tab === "day-by-day" && <DayByDayPage profile={activeProfile} />}
         {tab === "ledger" && <TransactionsPage profile={activeProfile} />}

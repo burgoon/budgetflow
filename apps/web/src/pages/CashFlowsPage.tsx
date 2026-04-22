@@ -12,30 +12,28 @@ import { TagFilterBar } from "../components/TagFilterBar";
 
 interface Props {
   profile: Profile;
-  direction: CashFlowDirection;
 }
 
-export function CashFlowsPage({ profile, direction }: Props) {
+const DIRECTIONS: { value: CashFlowDirection; label: string }[] = [
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expenses" },
+  { value: "transfer", label: "Transfers" },
+];
+
+export function CashFlowsPage({ profile }: Props) {
   const { data, activeProfile } = useApp();
   const budgetTargets = activeProfile?.budgetTargets ?? {};
   const [editing, setEditing] = useState<CashFlow | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTagKeys, setActiveTagKeys] = useState<Set<string>>(() => new Set());
-  // Sub-view toggle for the Expenses tab — shows transfers alongside expenses.
-  const [subView, setSubView] = useState<"items" | "transfers">("items");
-  const showTransferToggle = direction === "expense";
-
-  /** The actual direction used for filtering and creating: "transfer" when
-   *  the user is on the Transfers sub-view, otherwise the page's direction. */
-  const effectiveDirection: CashFlowDirection =
-    showTransferToggle && subView === "transfers" ? "transfer" : direction;
+  const [direction, setDirection] = useState<CashFlowDirection>("income");
 
   const allItems = useMemo(
     () =>
       data.cashFlows
-        .filter((cf) => cf.profileId === profile.id && cf.direction === effectiveDirection)
+        .filter((cf) => cf.profileId === profile.id && cf.direction === direction)
         .sort((a, b) => a.name.localeCompare(b.name)),
-    [data.cashFlows, profile.id, effectiveDirection],
+    [data.cashFlows, profile.id, direction],
   );
 
   const items = useMemo(
@@ -82,39 +80,32 @@ export function CashFlowsPage({ profile, direction }: Props) {
     });
   }
 
-  const isTransferView = effectiveDirection === "transfer";
-  const pageTitle = direction === "income" ? "Income" : "Expenses";
-  const Icon = isTransferView ? ArrowRightLeft : direction === "income" ? TrendingUp : TrendingDown;
-  const directionLabel = isTransferView
-    ? "transfer"
-    : direction === "income"
-      ? "income"
-      : "expense";
-  const sign = isTransferView ? "" : direction === "income" ? "+" : "−";
+  const isTransferView = direction === "transfer";
+  const isIncome = direction === "income";
+  const Icon = isTransferView ? ArrowRightLeft : isIncome ? TrendingUp : TrendingDown;
+  const directionLabel = isTransferView ? "transfer" : isIncome ? "income" : "expense";
+  const sectionLabel = isTransferView ? "transfers" : isIncome ? "income" : "expenses";
+  const sign = isTransferView ? "" : isIncome ? "+" : "−";
 
   return (
     <div className="page">
       <div className="page__header">
-        <h2 className="page__title">{pageTitle}</h2>
+        <h2 className="page__title">Cash flows</h2>
         <div className="page__header-actions">
-          {showTransferToggle && (
-            <div className="segmented segmented--compact">
+          <div className="segmented segmented--compact" role="radiogroup" aria-label="Direction">
+            {DIRECTIONS.map((opt) => (
               <button
+                key={opt.value}
                 type="button"
-                className={`segmented__option ${subView === "items" ? "segmented__option--active" : ""}`}
-                onClick={() => setSubView("items")}
+                className={`segmented__option ${direction === opt.value ? "segmented__option--active" : ""}`}
+                onClick={() => setDirection(opt.value)}
+                aria-checked={direction === opt.value}
+                role="radio"
               >
-                Expenses
+                {opt.label}
               </button>
-              <button
-                type="button"
-                className={`segmented__option ${subView === "transfers" ? "segmented__option--active" : ""}`}
-                onClick={() => setSubView("transfers")}
-              >
-                Transfers
-              </button>
-            </div>
-          )}
+            ))}
+          </div>
           <button
             type="button"
             className="button button--primary"
@@ -137,8 +128,8 @@ export function CashFlowsPage({ profile, direction }: Props) {
       {allItems.length === 0 ? (
         <div className="empty-state">
           <Icon size={40} aria-hidden />
-          <h3>No {pageTitle.toLowerCase()} yet</h3>
-          <p>Add recurring or one-time {pageTitle.toLowerCase()} to factor into your projection.</p>
+          <h3>No {sectionLabel} yet</h3>
+          <p>Add recurring or one-time {sectionLabel} to factor into your projection.</p>
         </div>
       ) : items.length === 0 ? (
         <div className="empty-state">
@@ -317,7 +308,7 @@ export function CashFlowsPage({ profile, direction }: Props) {
       {creating && (
         <CashFlowEditor
           profile={profile}
-          direction={effectiveDirection}
+          direction={direction}
           onClose={() => setCreating(false)}
         />
       )}
