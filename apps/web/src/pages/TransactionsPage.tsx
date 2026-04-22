@@ -60,16 +60,17 @@ export function TransactionsPage({ profile }: { profile: Profile }) {
 
   const accountsById = useMemo(() => new Map(data.accounts.map((a) => [a.id, a])), [data.accounts]);
 
-  // Month totals (from the full month, not filtered).
+  // Totals reflect the active tag filter so they match the visible list.
+  // With no filter, `filtered` === `monthTxns` content-wise.
   const totals = useMemo(() => {
     let income = 0;
     let expense = 0;
-    for (const t of monthTxns) {
+    for (const t of filtered) {
       if (t.direction === "income") income += t.amount;
       else if (t.direction === "expense") expense += t.amount;
     }
     return { income, expense, net: income - expense };
-  }, [monthTxns]);
+  }, [filtered]);
 
   function toggleTag(key: string) {
     setActiveTagKeys((prev) => {
@@ -171,8 +172,8 @@ export function TransactionsPage({ profile }: { profile: Profile }) {
         </ul>
       )}
 
-      {/* Month totals */}
-      {monthTxns.length > 0 && (
+      {/* Totals (respect active tag filter) */}
+      {filtered.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">Month totals</h3>
           <div className="month-totals">

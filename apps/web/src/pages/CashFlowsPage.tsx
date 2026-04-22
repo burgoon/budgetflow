@@ -52,7 +52,10 @@ export function CashFlowsPage({ profile }: { profile: Profile }) {
     [profileAccounts, allItems],
   );
 
-  const recurrenceGroups = useMemo(() => groupByRecurrence(allItems), [allItems]);
+  // By recurrence reflects the active tag filter so the totals match the
+  // visible list. By tag still uses the full set so it remains a complete
+  // tag breakdown of all items in the active direction.
+  const recurrenceGroups = useMemo(() => groupByRecurrence(items), [items]);
   const tagGroups = useMemo(() => groupByTag(allItems), [allItems]);
 
   const now = new Date();
