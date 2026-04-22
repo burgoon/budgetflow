@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { addDays, startOfDay } from "date-fns";
-import { CalendarDays, Download } from "lucide-react";
-import type { Profile } from "../types";
+import { Download } from "lucide-react";
+import type { Account, Profile } from "../types";
 import { useApp, useDateFormat } from "../state";
 import {
   dailyProjection,
@@ -13,21 +13,22 @@ import {
 } from "../lib/projection";
 import { downloadCsv, toCsv } from "../lib/csv";
 import { toDateInputValue } from "../lib/format";
-import { DailyProjectionTable, type TableView } from "../components/DailyProjectionTable";
-import { OccurrenceActionsModal } from "../components/OccurrenceActionsModal";
+import { DailyProjectionTable, type TableView } from "./DailyProjectionTable";
+import { OccurrenceActionsModal } from "./OccurrenceActionsModal";
 
 const PROJECTION_DAYS = 365;
 
-export function DayByDayPage({ profile }: { profile: Profile }) {
+interface Props {
+  profile: Profile;
+  profileAccounts: Account[];
+}
+
+export function ForecastTable({ profile, profileAccounts }: Props) {
   const { data } = useApp();
   const dateFormat = useDateFormat();
   const [selectedEvent, setSelectedEvent] = useState<DailyEvent | null>(null);
   const [view, setView] = useState<TableView>("accounts");
 
-  const profileAccounts = useMemo(
-    () => data.accounts.filter((account) => account.profileId === profile.id),
-    [data.accounts, profile.id],
-  );
   const profileCashFlows = useMemo(
     () => data.cashFlows.filter((cashFlow) => cashFlow.profileId === profile.id),
     [data.cashFlows, profile.id],
@@ -86,7 +87,7 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
       ];
     });
     const csv = toCsv([header, ...body]);
-    const filename = `budgetflow-day-by-day-${toDateInputValue(new Date())}.csv`;
+    const filename = `budgetflow-forecast-${toDateInputValue(new Date())}.csv`;
     downloadCsv(filename, csv);
   }
 
@@ -118,47 +119,36 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
   const canExport = rows.length > 0;
 
   return (
-    <div className="page">
-      <div className="page__header">
-        <h2 className="page__title">Day-by-day</h2>
-        <div className="page__header-actions">
-          <div className="segmented segmented--compact" role="radiogroup" aria-label="Table view">
-            <button
-              type="button"
-              className={`segmented__option ${view === "accounts" ? "segmented__option--active" : ""}`}
-              onClick={() => setView("accounts")}
-              aria-checked={view === "accounts"}
-              role="radio"
-            >
-              Per account
-            </button>
-            <button
-              type="button"
-              className={`segmented__option ${view === "aggregate" ? "segmented__option--active" : ""}`}
-              onClick={() => setView("aggregate")}
-              aria-checked={view === "aggregate"}
-              role="radio"
-            >
-              Aggregate
-            </button>
-          </div>
-          {canExport && (
-            <button type="button" className="button" onClick={handleExport}>
-              <Download size={16} aria-hidden /> Export CSV
-            </button>
-          )}
+    <>
+      <div className="forecast-toolbar">
+        <div className="segmented segmented--compact" role="radiogroup" aria-label="Table view">
+          <button
+            type="button"
+            className={`segmented__option ${view === "accounts" ? "segmented__option--active" : ""}`}
+            onClick={() => setView("accounts")}
+            aria-checked={view === "accounts"}
+            role="radio"
+          >
+            Per account
+          </button>
+          <button
+            type="button"
+            className={`segmented__option ${view === "aggregate" ? "segmented__option--active" : ""}`}
+            onClick={() => setView("aggregate")}
+            aria-checked={view === "aggregate"}
+            role="radio"
+          >
+            Aggregate
+          </button>
         </div>
+        {canExport && (
+          <button type="button" className="button" onClick={handleExport}>
+            <Download size={16} aria-hidden /> Export CSV
+          </button>
+        )}
       </div>
 
-      {profileAccounts.length === 0 ? (
-        <div className="empty-state">
-          <CalendarDays size={40} aria-hidden />
-          <h3>Nothing to project</h3>
-          <p>Add at least one account to see a day-by-day breakdown.</p>
-        </div>
-      ) : (
-        <DailyProjectionTable rows={rows} view={view} onEventClick={setSelectedEvent} />
-      )}
+      <DailyProjectionTable rows={rows} view={view} onEventClick={setSelectedEvent} />
 
       {selectedEvent && (
         <OccurrenceActionsModal
@@ -167,6 +157,6 @@ export function DayByDayPage({ profile }: { profile: Profile }) {
           onClose={() => setSelectedEvent(null)}
         />
       )}
-    </div>
+    </>
   );
 }

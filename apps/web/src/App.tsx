@@ -13,15 +13,14 @@ import { ProfileManagerView } from "./components/ProfileManagerView";
 import { ResetHistoryModal } from "./components/ResetHistoryModal";
 import { AccountsPage } from "./pages/AccountsPage";
 import { CashFlowsPage } from "./pages/CashFlowsPage";
-import { ProjectionPage } from "./pages/ProjectionPage";
-import { DayByDayPage } from "./pages/DayByDayPage";
+import { ForecastPage } from "./pages/ForecastPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { HelpScreen } from "./components/HelpScreen";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
 import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
-export type Tab = "accounts" | "cashflows" | "projection" | "day-by-day" | "ledger" | "dashboard";
+export type Tab = "accounts" | "cashflows" | "forecast" | "ledger" | "dashboard";
 
 const SYNC_INTERVAL_MS = 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
@@ -172,8 +171,7 @@ function AppInner() {
       <Layout tab={tab} onTabChange={setTab} onMobileAction={setMobileModal}>
         {tab === "accounts" && <AccountsPage profile={activeProfile} />}
         {tab === "cashflows" && <CashFlowsPage profile={activeProfile} />}
-        {tab === "projection" && <ProjectionPage profile={activeProfile} />}
-        {tab === "day-by-day" && <DayByDayPage profile={activeProfile} />}
+        {tab === "forecast" && <ForecastPage profile={activeProfile} />}
         {tab === "ledger" && <TransactionsPage profile={activeProfile} />}
         {tab === "dashboard" && <DashboardPage profile={activeProfile} />}
       </Layout>

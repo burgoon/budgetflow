@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import {
   ArrowUpDown,
-  CalendarDays,
   LayoutDashboard,
   LineChart,
   List,
@@ -26,8 +25,7 @@ interface LayoutProps {
 
 const TABS: Array<{ id: Tab; label: string; Icon: typeof Wallet }> = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { id: "day-by-day", label: "Day-by-day", Icon: CalendarDays },
-  { id: "projection", label: "Projection", Icon: LineChart },
+  { id: "forecast", label: "Forecast", Icon: LineChart },
   { id: "accounts", label: "Accounts", Icon: Wallet },
   { id: "cashflows", label: "Cash flows", Icon: ArrowUpDown },
   { id: "ledger", label: "Ledger", Icon: List },
