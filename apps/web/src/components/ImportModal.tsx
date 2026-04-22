@@ -164,8 +164,8 @@ export function ImportModal({ onClose, initialShare }: Props) {
         {step === "pick" && (
           <>
             <p className="field__hint">
-              Pick a BudgetFlow export file (<code>.json</code>) to load. You'll choose
-              what to do with it on the next step.
+              Pick a BudgetFlow export file (<code>.json</code>) to load. You'll choose what to do
+              with it on the next step.
             </p>
             <input
               ref={fileInputRef}
@@ -197,14 +197,13 @@ export function ImportModal({ onClose, initialShare }: Props) {
               <p className="export-summary__lead">
                 {source.kind === "file" ? (
                   <>
-                    <Lock size={14} aria-hidden style={{ verticalAlign: "-2px" }} />{" "}
-                    Encrypted export from{" "}
-                    <strong>{new Date(source.exportedAt).toLocaleString()}</strong>
+                    <Lock size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Encrypted
+                    export from <strong>{new Date(source.exportedAt).toLocaleString()}</strong>
                   </>
                 ) : (
                   <>
-                    <LinkIcon size={14} aria-hidden style={{ verticalAlign: "-2px" }} />{" "}
-                    This share link is encrypted — enter the passphrase the sender used.
+                    <LinkIcon size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> This share
+                    link is encrypted — enter the passphrase the sender used.
                   </>
                 )}
               </p>
@@ -252,6 +251,10 @@ export function ImportModal({ onClose, initialShare }: Props) {
                   <strong>{summarize(decoded).cashFlows}</strong> cash flow
                   {summarize(decoded).cashFlows === 1 ? "" : "s"}
                 </li>
+                <li>
+                  <strong>{summarize(decoded).transactions}</strong> transaction
+                  {summarize(decoded).transactions === 1 ? "" : "s"}
+                </li>
               </ul>
             </div>
 
@@ -265,12 +268,10 @@ export function ImportModal({ onClose, initialShare }: Props) {
                   <FilePlus size={18} aria-hidden />
                 </span>
                 <span className="occurrence-action__body">
-                  <span className="occurrence-action__label">
-                    Add as new profile(s)
-                  </span>
+                  <span className="occurrence-action__label">Add as new profile(s)</span>
                   <span className="occurrence-action__hint">
-                    Keep your existing data and add the imported profiles alongside it.
-                    All imported IDs are renamed so nothing collides.
+                    Keep your existing data and add the imported profiles alongside it. All imported
+                    IDs are renamed so nothing collides.
                   </span>
                 </span>
               </button>
@@ -286,8 +287,8 @@ export function ImportModal({ onClose, initialShare }: Props) {
                 <span className="occurrence-action__body">
                   <span className="occurrence-action__label">Replace ALL data</span>
                   <span className="occurrence-action__hint">
-                    Wipes everything currently in this browser and replaces it with the
-                    imported data. You'll be asked to confirm.
+                    Wipes everything currently in this browser and replaces it with the imported
+                    data. You'll be asked to confirm.
                   </span>
                 </span>
               </button>

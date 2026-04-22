@@ -1,9 +1,5 @@
 import type { AppData } from "../types";
-import {
-  InvalidExportError,
-  PassphraseRequiredError,
-  WrongPassphraseError,
-} from "./dataExport";
+import { InvalidExportError, PassphraseRequiredError, WrongPassphraseError } from "./dataExport";
 
 /**
  * Compact share format for putting an entire AppData blob into a URL fragment.
@@ -76,10 +72,7 @@ export interface EncodeShareResult {
   urlLength: number;
 }
 
-export async function encodeShare(
-  data: AppData,
-  passphrase?: string,
-): Promise<EncodeShareResult> {
+export async function encodeShare(data: AppData, passphrase?: string): Promise<EncodeShareResult> {
   // Step 1: serialize and compress.
   const jsonBytes = new TextEncoder().encode(JSON.stringify(data));
   const compressed = await deflate(jsonBytes);
@@ -208,12 +201,16 @@ function buildShareUrl(encoded: string): string {
 // ---------------------------------------------------------------- helpers
 
 async function deflate(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  const stream = new Blob([bytes as BlobPart])
+    .stream()
+    .pipeThrough(new CompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 async function inflate(bytes: Uint8Array): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const stream = new Blob([bytes as BlobPart])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
@@ -256,10 +253,13 @@ function base64UrlToBytes(b64url: string): Uint8Array {
 function isAppData(obj: unknown): obj is AppData {
   if (!obj || typeof obj !== "object") return false;
   const o = obj as Record<string, unknown>;
+  // `transactions` was added after the initial schema, so accept missing
+  // (migrateAppData patches it to []) but reject a wrong type.
   return (
     o.version === 1 &&
     Array.isArray(o.profiles) &&
     Array.isArray(o.accounts) &&
-    Array.isArray(o.cashFlows)
+    Array.isArray(o.cashFlows) &&
+    (o.transactions === undefined || Array.isArray(o.transactions))
   );
 }

@@ -59,6 +59,7 @@ export interface ImportSummary {
   profiles: number;
   accounts: number;
   cashFlows: number;
+  transactions: number;
 }
 
 export function summarize(data: AppData): ImportSummary {
@@ -66,6 +67,7 @@ export function summarize(data: AppData): ImportSummary {
     profiles: data.profiles.length,
     accounts: data.accounts.length,
     cashFlows: data.cashFlows.length,
+    transactions: data.transactions?.length ?? 0,
   };
 }
 
@@ -180,11 +182,15 @@ export async function importFromJson(jsonText: string, passphrase?: string): Pro
 export function remapImportIds(imported: AppData): AppData {
   const profileMap = new Map<string, string>();
   const accountMap = new Map<string, string>();
+  const cashFlowMap = new Map<string, string>();
   for (const profile of imported.profiles) {
     profileMap.set(profile.id, crypto.randomUUID());
   }
   for (const account of imported.accounts) {
     accountMap.set(account.id, crypto.randomUUID());
+  }
+  for (const cashFlow of imported.cashFlows) {
+    cashFlowMap.set(cashFlow.id, crypto.randomUUID());
   }
   return {
     version: 1,
@@ -196,15 +202,20 @@ export function remapImportIds(imported: AppData): AppData {
     })),
     cashFlows: imported.cashFlows.map((c) => ({
       ...c,
-      id: crypto.randomUUID(),
+      id: cashFlowMap.get(c.id)!,
       profileId: profileMap.get(c.profileId) ?? c.profileId,
       accountId: c.accountId ? (accountMap.get(c.accountId) ?? c.accountId) : null,
+      fromAccountId: c.fromAccountId
+        ? (accountMap.get(c.fromAccountId) ?? c.fromAccountId)
+        : c.fromAccountId,
+      toAccountId: c.toAccountId ? (accountMap.get(c.toAccountId) ?? c.toAccountId) : c.toAccountId,
     })),
     transactions: (imported.transactions ?? []).map((t) => ({
       ...t,
       id: crypto.randomUUID(),
       profileId: profileMap.get(t.profileId) ?? t.profileId,
       accountId: accountMap.get(t.accountId) ?? t.accountId,
+      cashFlowId: t.cashFlowId ? (cashFlowMap.get(t.cashFlowId) ?? t.cashFlowId) : undefined,
     })),
     activeProfileId: null,
   };
@@ -282,11 +293,14 @@ function isEnvelope(obj: unknown): obj is Envelope {
 function isAppData(obj: unknown): obj is AppData {
   if (!obj || typeof obj !== "object") return false;
   const o = obj as Record<string, unknown>;
+  // `transactions` was added after the initial schema, so accept missing
+  // (migrateAppData patches it to []) but reject a wrong type.
   return (
     o.version === 1 &&
     Array.isArray(o.profiles) &&
     Array.isArray(o.accounts) &&
-    Array.isArray(o.cashFlows)
+    Array.isArray(o.cashFlows) &&
+    (o.transactions === undefined || Array.isArray(o.transactions))
   );
 }
 

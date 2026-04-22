@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { Download, ShieldCheck } from "lucide-react";
 import { useApp } from "../state";
-import {
-  buildExportFilename,
-  downloadJson,
-  exportToJson,
-  summarize,
-} from "../lib/dataExport";
+import { buildExportFilename, downloadJson, exportToJson, summarize } from "../lib/dataExport";
 import { Modal } from "./Modal";
 
 interface Props {
@@ -23,12 +18,10 @@ export function ExportModal({ onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const passphraseMismatch =
-    encrypt && passphrase.length > 0 && passphrase !== confirmPassphrase;
+  const passphraseMismatch = encrypt && passphrase.length > 0 && passphrase !== confirmPassphrase;
   const passphraseTooShort = encrypt && passphrase.length > 0 && passphrase.length < 8;
   const canDownload =
-    !busy &&
-    (!encrypt || (passphrase.length >= 8 && passphrase === confirmPassphrase));
+    !busy && (!encrypt || (passphrase.length >= 8 && passphrase === confirmPassphrase));
 
   async function handleDownload() {
     setBusy(true);
@@ -81,6 +74,10 @@ export function ExportModal({ onClose }: Props) {
             <li>
               <strong>{stats.cashFlows}</strong> cash flow{stats.cashFlows === 1 ? "" : "s"}
             </li>
+            <li>
+              <strong>{stats.transactions}</strong> transaction
+              {stats.transactions === 1 ? "" : "s"}
+            </li>
           </ul>
         </div>
 
@@ -91,14 +88,14 @@ export function ExportModal({ onClose }: Props) {
             onChange={(event) => setEncrypt(event.target.checked)}
           />
           <span className="field__label">
-            <ShieldCheck size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Encrypt
-            with a passphrase
+            <ShieldCheck size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Encrypt with a
+            passphrase
           </span>
         </label>
         {!encrypt && (
           <p className="field__hint">
-            Recommended if you'll send the file through email, cloud storage, or any
-            channel that isn't end-to-end encrypted (iMessage, Signal, AirDrop are fine).
+            Recommended if you'll send the file through email, cloud storage, or any channel that
+            isn't end-to-end encrypted (iMessage, Signal, AirDrop are fine).
           </p>
         )}
 
@@ -115,8 +112,8 @@ export function ExportModal({ onClose }: Props) {
                 autoFocus
               />
               <span className="field__hint">
-                At least 8 characters. You'll need this exact passphrase to import the
-                file later — there's no recovery.
+                At least 8 characters. You'll need this exact passphrase to import the file later —
+                there's no recovery.
               </span>
             </label>
             <label className="field">
@@ -134,9 +131,7 @@ export function ExportModal({ onClose }: Props) {
                 </span>
               )}
               {passphraseMismatch && !passphraseTooShort && (
-                <span className="field__hint field__hint--danger">
-                  Passphrases don't match.
-                </span>
+                <span className="field__hint field__hint--danger">Passphrases don't match.</span>
               )}
             </label>
           </>

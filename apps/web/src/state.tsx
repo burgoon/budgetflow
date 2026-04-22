@@ -98,6 +98,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         profiles: remaining,
         accounts: d.accounts.filter((a) => a.profileId !== id),
         cashFlows: d.cashFlows.filter((c) => c.profileId !== id),
+        transactions: d.transactions.filter((t) => t.profileId !== id),
         activeProfileId: d.activeProfileId === id ? (remaining[0]?.id ?? null) : d.activeProfileId,
       };
     });
@@ -123,7 +124,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setData((d) => ({
       ...d,
       accounts: d.accounts.filter((a) => a.id !== id),
-      cashFlows: d.cashFlows.map((c) => (c.accountId === id ? { ...c, accountId: null } : c)),
+      // Null every reference (regular accountId + transfer from/to) so no
+      // cash flow keeps a dangling pointer to the deleted account.
+      cashFlows: d.cashFlows.map((c) => ({
+        ...c,
+        accountId: c.accountId === id ? null : c.accountId,
+        fromAccountId: c.fromAccountId === id ? null : c.fromAccountId,
+        toAccountId: c.toAccountId === id ? null : c.toAccountId,
+      })),
     }));
   }, []);
 

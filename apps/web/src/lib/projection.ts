@@ -260,7 +260,9 @@ export interface DailyProjectionRow {
   accountEnds: DailyAccountBalance[];
   activity: DailyEvent[];
   /** Sum of income amounts that fired today (positive magnitude). Excludes
-   *  paid/canceled overrides — only events that actually move balances. */
+   *  canceled overrides and transfers — only events that actually move
+   *  balances on this account-list. Confirmed events count, using
+   *  `actualAmount` if set. */
   incomeTotal: number;
   /** Sum of expense amounts that fired today (positive magnitude). */
   expenseTotal: number;
@@ -317,15 +319,16 @@ export function dailyProjection(
 /**
  * Build a map keyed by startOfDay timestamp of every cash flow occurrence
  * inside the window. Used to render per-day "what fired today" chips in
- * the day-by-day table.
+ * the Forecast → Table view.
  *
  * Overrides are included:
- *   - "paid" / "canceled" occurrences appear on their scheduled date with
- *     their override attached — the chip renders struck-through and the
- *     engine ignores them for balance math.
- *   - "moved" occurrences appear on their actual date (and only if the
- *     actual date is inside the window); the scheduled date no longer
- *     shows the chip.
+ *   - "confirmed" — appears on its scheduled date with the override attached.
+ *     The chip's amount is `actualAmount` when present, otherwise `cf.amount`.
+ *     The engine counts this in balance math.
+ *   - "canceled" — appears on its scheduled date with the override attached.
+ *     The chip renders struck-through; the engine skips it for balance math.
+ *   - "moved" — appears on its `actualDate` (and only if the actual date is
+ *     inside the window); the scheduled date no longer shows the chip.
  */
 export function eventsByDay(
   cashFlows: CashFlow[],

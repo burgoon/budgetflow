@@ -53,8 +53,7 @@ export function ShareModal({ onClose }: Props) {
   }, [encrypt]);
 
   const passphraseTooShort = encrypt && passphrase.length > 0 && passphrase.length < 8;
-  const passphraseMismatch =
-    encrypt && passphrase.length > 0 && passphrase !== confirmPassphrase;
+  const passphraseMismatch = encrypt && passphrase.length > 0 && passphrase !== confirmPassphrase;
   const canGenerateEncrypted =
     encrypt && passphrase.length >= 8 && passphrase === confirmPassphrase;
 
@@ -112,10 +111,9 @@ export function ShareModal({ onClose }: Props) {
       <div className="form">
         <div className="export-summary">
           <p className="export-summary__lead">
-            <LinkIcon size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Anyone
-            who opens this link will be offered the chance to import this data into
-            their own browser. The data lives entirely in the link — no server stores
-            it.
+            <LinkIcon size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Anyone who opens
+            this link will be offered the chance to import this data into their own browser. The
+            data lives entirely in the link — no server stores it.
           </p>
           <ul className="export-summary__stats">
             <li>
@@ -129,6 +127,10 @@ export function ShareModal({ onClose }: Props) {
               <strong>{stats.cashFlows}</strong> cash flow
               {stats.cashFlows === 1 ? "" : "s"}
             </li>
+            <li>
+              <strong>{stats.transactions}</strong> transaction
+              {stats.transactions === 1 ? "" : "s"}
+            </li>
           </ul>
         </div>
 
@@ -139,15 +141,15 @@ export function ShareModal({ onClose }: Props) {
             onChange={(event) => setEncrypt(event.target.checked)}
           />
           <span className="field__label">
-            <ShieldCheck size={14} aria-hidden style={{ verticalAlign: "-2px" }} />{" "}
-            Require a passphrase to import
+            <ShieldCheck size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Require a
+            passphrase to import
           </span>
         </label>
         {!encrypt && (
           <p className="field__hint">
-            Without a passphrase, anyone with the link can import. URL fragments
-            (`#…`) are never sent to the server, but they show up in browser history,
-            link previews, and screen sharing.
+            Without a passphrase, anyone with the link can import. URL fragments (`#…`) are never
+            sent to the server, but they show up in browser history, link previews, and screen
+            sharing.
           </p>
         )}
 
@@ -164,8 +166,8 @@ export function ShareModal({ onClose }: Props) {
                 autoFocus
               />
               <span className="field__hint">
-                Share the passphrase out-of-band — don't put it in the same
-                message as the link. At least 8 characters.
+                Share the passphrase out-of-band — don't put it in the same message as the link. At
+                least 8 characters.
               </span>
             </label>
             <label className="field">
@@ -188,9 +190,7 @@ export function ShareModal({ onClose }: Props) {
                 </span>
               )}
               {passphraseMismatch && !passphraseTooShort && (
-                <span className="field__hint field__hint--danger">
-                  Passphrases don't match.
-                </span>
+                <span className="field__hint field__hint--danger">Passphrases don't match.</span>
               )}
             </label>
             {!shareUrl && (
@@ -217,16 +217,10 @@ export function ShareModal({ onClose }: Props) {
                 rows={3}
                 onFocus={(event) => event.target.select()}
               />
-              {sizeNote && (
-                <span className={`field__hint ${sizeNote.tone}`}>{sizeNote.text}</span>
-              )}
+              {sizeNote && <span className={`field__hint ${sizeNote.tone}`}>{sizeNote.text}</span>}
             </label>
             <div className="share-url__actions">
-              <button
-                type="button"
-                className="button button--primary"
-                onClick={handleCopy}
-              >
+              <button type="button" className="button button--primary" onClick={handleCopy}>
                 {copied ? (
                   <>
                     <Check size={16} aria-hidden /> Copied
