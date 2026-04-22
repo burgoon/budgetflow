@@ -159,7 +159,7 @@ function AppInner() {
   if (!activeProfile) {
     return (
       <>
-        <EmptyProfileView />
+        <EmptyProfileView onAction={setMobileModal} />
         {pendingShare && <ImportModal initialShare={pendingShare} onClose={dismissShare} />}
         {mobileModals}
       </>
