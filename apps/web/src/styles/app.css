@@ -1778,6 +1778,7 @@ button.chip--interactive:active {
 
 /* -------- Budget progress bars (by-tag aggregates) -------- */
 .budget-bar {
+  position: relative;
   height: 6px;
   background: var(--border);
   border-radius: 3px;

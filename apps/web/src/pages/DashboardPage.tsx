@@ -5,6 +5,7 @@ import { useApp } from "../state";
 import { formatCurrency } from "../lib/format";
 import { computeBudgetActuals, monthProgress } from "../lib/budget";
 import { NeedsAttentionCard } from "../components/NeedsAttentionCard";
+import { BudgetTargetsModal } from "../components/BudgetTargetsModal";
 
 export function DashboardPage({ profile }: { profile: Profile }) {
   const { data, activeProfile } = useApp();
@@ -13,6 +14,7 @@ export function DashboardPage({ profile }: { profile: Profile }) {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [targetsOpen, setTargetsOpen] = useState(false);
 
   function navigateMonth(delta: number) {
     const d = new Date(viewYear, viewMonth + delta, 1);
@@ -55,6 +57,11 @@ export function DashboardPage({ profile }: { profile: Profile }) {
     <div className="page">
       <div className="page__header">
         <h2 className="page__title">Dashboard</h2>
+        <div className="page__header-actions">
+          <button type="button" className="button" onClick={() => setTargetsOpen(true)}>
+            Budget targets
+          </button>
+        </div>
       </div>
 
       <NeedsAttentionCard profile={profile} />
@@ -84,9 +91,16 @@ export function DashboardPage({ profile }: { profile: Profile }) {
           <LayoutDashboard size={40} aria-hidden />
           <h3>No budget targets set</h3>
           <p>
-            Edit your profile to add monthly expense targets per tag, then log transactions in the
-            Ledger. The dashboard shows actual vs. planned.
+            Set a monthly spending target for any tag. Actuals versus each target appear here with
+            green / yellow / red progress bars as you confirm transactions.
           </p>
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setTargetsOpen(true)}
+          >
+            Set up budget targets
+          </button>
         </div>
       ) : (
         <>
@@ -192,6 +206,10 @@ export function DashboardPage({ profile }: { profile: Profile }) {
             </ul>
           </section>
         </>
+      )}
+
+      {targetsOpen && (
+        <BudgetTargetsModal profile={profile} onClose={() => setTargetsOpen(false)} />
       )}
     </div>
   );

@@ -95,15 +95,15 @@ export function HelpScreen({ onClose }: Props) {
           <ol>
             <li>Add tags to your expenses (e.g., "groceries", "home", "vehicle").</li>
             <li>
-              Go to <strong>Edit profile</strong> (profile menu or More → Edit active profile) and
-              add <strong>Monthly expense budgets</strong> for each tag.
+              On the <strong>Dashboard</strong>, tap <strong>Budget targets…</strong> and set a
+              monthly dollar target for each tag you want to track.
             </li>
             <li>
-              Log actual spending as transactions in the <strong>Ledger</strong> — or let "Mark as
-              paid" auto-log them.
+              Log actual spending as transactions in the <strong>Ledger</strong> — or confirm
+              scheduled items from the Needs Attention inbox and they auto-log.
             </li>
             <li>
-              View progress on the <strong>Budget</strong> tab — shows actual-vs-target per category
+              View progress on the <strong>Dashboard</strong> — shows actual-vs-target per category
               with progress bars and pace markers (are you spending faster or slower than the month
               is progressing?).
             </li>
