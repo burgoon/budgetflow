@@ -2194,34 +2194,20 @@ button.chip--interactive:active {
     flex: 1;
     flex-direction: column;
     justify-content: center;
-    gap: 0;
-    padding: 8px 2px;
+    gap: 2px;
+    padding: 6px 4px;
     min-height: 52px;
     background: transparent;
     color: var(--text-secondary);
+    font-size: 0.65rem;
     font-weight: 500;
     border-radius: var(--radius-sm);
     min-width: 0;
   }
 
-  /* Icon-only on mobile: with 7 tabs + More, labels can't fit cleanly across
-     a phone's width without truncation. Visually hide them but keep them in
-     the accessibility tree so screen readers still announce the tab name. */
-  .layout__tab span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   .layout__tab svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 
   .layout__tab:hover {

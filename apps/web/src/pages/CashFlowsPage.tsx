@@ -10,17 +10,13 @@ import { computeBudgetActuals } from "../lib/budget";
 import { CashFlowEditor } from "../components/CashFlowEditor";
 import { TagFilterBar } from "../components/TagFilterBar";
 
-interface Props {
-  profile: Profile;
-}
-
 const DIRECTIONS: { value: CashFlowDirection; label: string }[] = [
   { value: "income", label: "Income" },
   { value: "expense", label: "Expenses" },
   { value: "transfer", label: "Transfers" },
 ];
 
-export function CashFlowsPage({ profile }: Props) {
+export function CashFlowsPage({ profile }: { profile: Profile }) {
   const { data, activeProfile } = useApp();
   const budgetTargets = activeProfile?.budgetTargets ?? {};
   const [editing, setEditing] = useState<CashFlow | null>(null);
@@ -51,19 +47,14 @@ export function CashFlowsPage({ profile }: Props) {
     [data.accounts, profile.id],
   );
 
-  // Suggestions / filter pills draw from this direction's items only — keeps
-  // the filter bar focused. Suggestions in the editor pull from everything.
   const tagsInUse = useMemo(
     () => collectAllTags(profileAccounts, allItems),
     [profileAccounts, allItems],
   );
 
-  // Aggregates always reflect the FULL list, not the filtered view — they're
-  // about the underlying budget, not what's currently visible.
   const recurrenceGroups = useMemo(() => groupByRecurrence(allItems), [allItems]);
   const tagGroups = useMemo(() => groupByTag(allItems), [allItems]);
 
-  // Budget actuals: actual expense transactions this month vs targets.
   const now = new Date();
   const budgetActuals = useMemo(() => {
     if (direction !== "expense") return [];
@@ -178,8 +169,6 @@ export function CashFlowsPage({ profile }: Props) {
         </ul>
       )}
 
-      {/* Aggregate sections: skipped for transfers (they're net-zero so
-          monthly-equivalent sums aren't meaningful). */}
       {!isTransferView && recurrenceGroups.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">
@@ -215,9 +204,6 @@ export function CashFlowsPage({ profile }: Props) {
         </section>
       )}
 
-      {/* By tag: when on expenses and we have budget actuals (from
-          transactions), show actual-vs-target. Otherwise show the
-          monthly-equivalent from scheduled cash flows. */}
       {!isTransferView && direction === "expense" && budgetActuals.length > 0 && (
         <section className="page__section">
           <h3 className="page__subtitle">
@@ -273,8 +259,6 @@ export function CashFlowsPage({ profile }: Props) {
         </section>
       )}
 
-      {/* Scheduled-equivalent "By tag" for income or when no budget
-          actuals yet. */}
       {!isTransferView &&
         (direction === "income" || budgetActuals.length === 0) &&
         tagGroups.length > 0 && (

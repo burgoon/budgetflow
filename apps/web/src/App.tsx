@@ -20,7 +20,7 @@ import { HelpScreen } from "./components/HelpScreen";
 import { clearShareFromHash, readShareFromHash } from "./lib/share";
 import { loadSyncConfig, pollSync, pushSync, saveSyncConfig, type SyncConfig } from "./lib/sync";
 
-export type Tab = "accounts" | "cashflows" | "forecast" | "ledger" | "dashboard";
+export type Tab = "dashboard" | "forecast" | "accounts" | "cashflows" | "ledger";
 
 const SYNC_INTERVAL_MS = 60_000;
 const PUSH_DEBOUNCE_MS = 3_000;
@@ -37,7 +37,7 @@ export function App() {
 
 function AppInner() {
   const { data, activeProfile, replaceAllData } = useApp();
-  const [tab, setTab] = useState<Tab>("accounts");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [pendingShare, setPendingShare] = useState<string | null>(() => readShareFromHash());
   const [mobileModal, setMobileModal] = useState<MobileAction | null>(null);
   const [syncConfig, setSyncConfig] = useState<SyncConfig | null>(() => loadSyncConfig());
@@ -169,11 +169,11 @@ function AppInner() {
   return (
     <>
       <Layout tab={tab} onTabChange={setTab} onMobileAction={setMobileModal}>
+        {tab === "dashboard" && <DashboardPage profile={activeProfile} />}
+        {tab === "forecast" && <ForecastPage profile={activeProfile} />}
         {tab === "accounts" && <AccountsPage profile={activeProfile} />}
         {tab === "cashflows" && <CashFlowsPage profile={activeProfile} />}
-        {tab === "forecast" && <ForecastPage profile={activeProfile} />}
         {tab === "ledger" && <TransactionsPage profile={activeProfile} />}
-        {tab === "dashboard" && <DashboardPage profile={activeProfile} />}
       </Layout>
       {pendingShare && <ImportModal initialShare={pendingShare} onClose={dismissShare} />}
       {mobileModals}

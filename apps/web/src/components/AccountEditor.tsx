@@ -159,8 +159,8 @@ export function AccountEditor({ profile, account, onClose }: AccountEditorProps)
             placeholder="e.g., joint, savings goal"
           />
           <span className="field__hint">
-            Free-form labels shared with income and expenses. Use to filter and
-            group on the Income/Expenses tabs.
+            Free-form labels shared with income and expenses. Use to filter and group on the Cash
+            flows tab.
           </span>
         </div>
       </div>

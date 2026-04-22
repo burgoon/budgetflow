@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard, Plus } from "lucide-react";
 import type { Profile } from "../types";
 import { useApp } from "../state";
 import { formatCurrency } from "../lib/format";
 import { computeBudgetActuals, monthProgress } from "../lib/budget";
 import { NeedsAttentionCard } from "../components/NeedsAttentionCard";
+import { AccountStatusSection } from "../components/AccountStatusSection";
 import { BudgetTargetsModal } from "../components/BudgetTargetsModal";
+import { TransactionEditor } from "../components/TransactionEditor";
 
 export function DashboardPage({ profile }: { profile: Profile }) {
   const { data, activeProfile } = useApp();
@@ -15,6 +17,7 @@ export function DashboardPage({ profile }: { profile: Profile }) {
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [targetsOpen, setTargetsOpen] = useState(false);
+  const [logTxnOpen, setLogTxnOpen] = useState(false);
 
   function navigateMonth(delta: number) {
     const d = new Date(viewYear, viewMonth + delta, 1);
@@ -58,6 +61,13 @@ export function DashboardPage({ profile }: { profile: Profile }) {
       <div className="page__header">
         <h2 className="page__title">Dashboard</h2>
         <div className="page__header-actions">
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setLogTxnOpen(true)}
+          >
+            <Plus size={16} aria-hidden /> Log transaction
+          </button>
           <button type="button" className="button" onClick={() => setTargetsOpen(true)}>
             Budget targets
           </button>
@@ -65,6 +75,8 @@ export function DashboardPage({ profile }: { profile: Profile }) {
       </div>
 
       <NeedsAttentionCard profile={profile} />
+
+      <AccountStatusSection profile={profile} />
 
       <div className="month-nav">
         <button
@@ -211,6 +223,7 @@ export function DashboardPage({ profile }: { profile: Profile }) {
       {targetsOpen && (
         <BudgetTargetsModal profile={profile} onClose={() => setTargetsOpen(false)} />
       )}
+      {logTxnOpen && <TransactionEditor profile={profile} onClose={() => setLogTxnOpen(false)} />}
     </div>
   );
 }

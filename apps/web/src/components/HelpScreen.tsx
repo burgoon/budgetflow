@@ -21,73 +21,107 @@ export function HelpScreen({ onClose }: Props) {
     >
       <div className="help-content">
         <section className="help-section">
-          <h3>Daily workflow</h3>
+          <h3>First-time setup</h3>
           <ol>
             <li>
-              Open the app each morning. Go to <strong>Accounts</strong>.
+              <strong>Profile</strong> is created automatically on first launch. Edit name and date
+              format from the profile dropdown.
             </li>
             <li>
-              If any account shows <em>"Updated X days ago"</em> in amber, tap it and update the
-              balance to your real bank balance. Or tap <strong>Reconcile</strong> to compare
-              expected vs. actual — the app will offer to log any unaccounted difference as a
-              transaction.
+              <strong>Accounts</strong> tab → New account. Enter the current balance and the date
+              it's accurate as of. For credit cards, enter the amount <strong>owed</strong> as a
+              positive number — the engine handles the sign flip.
             </li>
             <li>
-              Check <strong>Projection</strong> to see your future balance chart, or{" "}
-              <strong>Day-by-day</strong> for a table of the next 365 days.
+              <strong>Cash flows</strong> tab → New {`{income|expense|transfer}`}. Set name, amount,
+              account, and recurrence (daily, weekly, 1st &amp; 15th, monthly, quarterly, annually,
+              or one-time). Tags help with filtering and budget tracking.
             </li>
             <li>
-              If a scheduled payment posts early (or late), tap the chip in the Day-by-day table →{" "}
-              <strong>Mark as paid</strong>. This prevents double-counting AND automatically creates
-              a transaction in the Ledger for budget tracking.
+              Optional: <strong>Dashboard → Budget targets</strong> to set monthly dollar targets
+              per tag. Actuals show as progress bars on the Dashboard.
             </li>
           </ol>
         </section>
 
         <section className="help-section">
-          <h3>Setting up accounts</h3>
+          <h3>Daily workflow</h3>
+          <p>Open the app to the Dashboard. Top to bottom:</p>
+          <ol>
+            <li>
+              <strong>Needs Attention</strong> — past scheduled items with no decision yet. Tap each
+              one and pick:
+              <ul>
+                <li>
+                  <strong>Confirm</strong> — happened as scheduled. Engine counts it; a Transaction
+                  is auto-logged.
+                </li>
+                <li>
+                  <strong>Different amount</strong> — same date but the actual amount differed.
+                  Engine uses your real number.
+                </li>
+                <li>
+                  <strong>Another date</strong> — posted on a different day than scheduled.
+                </li>
+                <li>
+                  <strong>Cancel</strong> — didn't happen and won't.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>Accounts</strong> section — when an account shows "Updated X days ago" in
+              amber, tap <strong>Reconcile</strong>. See projected vs. actual balance; absorb any
+              residual difference as a correction transaction.
+            </li>
+            <li>
+              <strong>Log transaction</strong> button (top right) — for one-off spending that isn't
+              on your recurring schedule (a coffee, a parking meter).
+            </li>
+          </ol>
           <p>
-            Go to <strong>Accounts → New account</strong>. Enter your current balance and the date
-            it's accurate as of. Add tags like "joint" or "savings goal" for filtering. The app
-            supports checking, savings, and credit card accounts. For credit cards, enter the{" "}
-            <strong>amount owed</strong> as a positive number — the engine handles the sign flip.
+            Once you've worked through the Dashboard, your projection accurately reflects what's
+            happened, and your budget actuals reflect reality.
           </p>
         </section>
 
         <section className="help-section">
-          <h3>Income, expenses, and transfers</h3>
+          <h3>Per-occurrence decisions</h3>
           <p>
-            <strong>Income</strong> and <strong>Expenses</strong> are recurring or one-time cash
-            flows tied to an account. Set the cadence (daily, weekly, 1st &amp; 15th, monthly,
-            quarterly, annually) and the amount. Tags help with filtering and budget tracking.
+            You can also reach future occurrences from <strong>Forecast → Table</strong> — tap any
+            chip to open the same action menu. <strong>Reset to schedule</strong> appears once
+            something has been overridden, and removes the override.
           </p>
           <p>
-            <strong>Transfers</strong> move money between two accounts (e.g., checking → credit card
-            payment). Find them in the Expenses tab under the <strong>Expenses | Transfers</strong>{" "}
-            toggle. Transfers don't affect net worth — the projection chart stays flat for them.
+            Confirmed occurrences get a thin green border on chips so you can see at a glance which
+            past chips are settled.
           </p>
         </section>
 
         <section className="help-section">
-          <h3>Per-occurrence overrides</h3>
+          <h3>Reconciliation</h3>
           <p>
-            Tap any chip on the <strong>Day-by-day</strong> table to open an action menu:
+            Reconcile is the safety net — work the inbox first so the projection is already
+            accurate, then reconcile to absorb any residual delta.
           </p>
-          <ul>
+          <ol>
             <li>
-              <strong>Mark as paid</strong> — skips the scheduled occurrence (already in your
-              balance) and auto-logs a transaction.
+              From the Dashboard's Accounts section (or the Accounts tab), tap{" "}
+              <strong>Reconcile</strong> on the account.
             </li>
             <li>
-              <strong>Move to another date</strong> — shifts it to the actual post date.
+              The modal shows what the engine expects given scheduled events + inbox decisions.
             </li>
+            <li>Enter your actual current bank balance.</li>
             <li>
-              <strong>Cancel</strong> — removes the occurrence entirely (it didn't happen).
+              If there's a delta, log it as a correction transaction (default on) — your budget
+              dashboard then reflects the absorbed amount with a name you choose.
             </li>
-            <li>
-              <strong>Reset</strong> — undoes any override.
-            </li>
-          </ul>
+          </ol>
+          <p>
+            On credit cards, "more owed than expected" is logged as an expense (untracked charge),
+            not income. The modal warns when the account still has unhandled inbox items so you
+            don't accidentally absorb known activity into one mystery delta.
+          </p>
         </section>
 
         <section className="help-section">
@@ -95,74 +129,27 @@ export function HelpScreen({ onClose }: Props) {
           <ol>
             <li>Add tags to your expenses (e.g., "groceries", "home", "vehicle").</li>
             <li>
-              On the <strong>Dashboard</strong>, tap <strong>Budget targets…</strong> and set a
-              monthly dollar target for each tag you want to track.
+              On the Dashboard, tap <strong>Budget targets</strong> and set a monthly dollar target
+              for each tag.
             </li>
             <li>
-              Log actual spending as transactions in the <strong>Ledger</strong> — or confirm
-              scheduled items from the Needs Attention inbox and they auto-log.
+              Confirm scheduled items in the inbox (auto-logs transactions) and use{" "}
+              <strong>Log transaction</strong> for one-off spending. Both feed the Dashboard's
+              actual-vs-target view.
             </li>
             <li>
-              View progress on the <strong>Dashboard</strong> — shows actual-vs-target per category
-              with progress bars and pace markers (are you spending faster or slower than the month
-              is progressing?).
+              Progress bars color green / yellow / red based on percent-of-target, with a pace
+              marker showing how far you are through the month.
             </li>
           </ol>
         </section>
 
         <section className="help-section">
-          <h3>Reconciliation</h3>
+          <h3>Transfers</h3>
           <p>
-            When an account balance is stale (more than a day old), a <strong>Reconcile</strong>{" "}
-            button appears on the account row. Tap it to:
-          </p>
-          <ol>
-            <li>See what the engine expects (based on scheduled events).</li>
-            <li>Enter your actual bank balance.</li>
-            <li>
-              If there's a difference, optionally log it as an "untracked expense" or "untracked
-              income" transaction — so your budget dashboard reflects reality.
-            </li>
-          </ol>
-        </section>
-
-        <section className="help-section">
-          <h3>Data portability</h3>
-          <ul>
-            <li>
-              <strong>Export</strong> — downloads a JSON file (optionally encrypted with a
-              passphrase).
-            </li>
-            <li>
-              <strong>Import</strong> — loads a file or share link. Choose to replace all data or
-              merge as new profiles.
-            </li>
-            <li>
-              <strong>Share via link</strong> — generates a compressed, optionally encrypted URL.
-              Recipient opens it and gets the import dialog.
-            </li>
-            <li>
-              <strong>Sync</strong> — keeps two devices in step. Create a sync code + passphrase on
-              one device, enter it on the other. Changes push/pull every 60 seconds. Requires the
-              sync backend (deploy with <code>-c enableSync=true</code>).
-            </li>
-          </ul>
-        </section>
-
-        <section className="help-section">
-          <h3>Date format</h3>
-          <p>
-            Each profile has its own date format (MM/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD). Change it
-            in <strong>Edit profile</strong>. Affects date pickers, table displays, and all date
-            labels across the app.
-          </p>
-        </section>
-
-        <section className="help-section">
-          <h3>Theme</h3>
-          <p>
-            Light, Dark, or Auto (follows your device). On desktop: cycle button in the header. On
-            mobile: More → Appearance.
+            Transfers move money between two accounts (e.g., checking → credit card payment). They
+            live on <strong>Cash flows → Transfers</strong>. Net worth stays flat for them — the
+            projection chart doesn't move because nothing enters or leaves your total.
           </p>
         </section>
       </div>

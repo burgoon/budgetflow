@@ -32,7 +32,7 @@ export function NeedsAttentionCard({ profile }: { profile: Profile }) {
       </header>
       <p className="needs-attention__hint">
         Each one was scheduled to post but hasn't been confirmed yet. Tap to mark paid, move to the
-        actual date, or cancel — your projection updates from there.
+        actual date, or cancel.
       </p>
       <ul className="needs-attention__list">
         {items.map((item) => {
