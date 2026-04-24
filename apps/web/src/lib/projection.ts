@@ -1,5 +1,12 @@
 import { addDays, isBefore, startOfDay } from "date-fns";
-import { Account, AccountKind, CashFlow, CashFlowDirection, OccurrenceOverride } from "../types";
+import {
+  Account,
+  AccountKind,
+  CashFlow,
+  CashFlowDirection,
+  OccurrenceOverride,
+  Transaction,
+} from "../types";
 import { occurrencesIn } from "./recurrence";
 import { parseDateInput, toDateInputValue } from "./format";
 
@@ -26,10 +33,16 @@ export interface AccountSeries {
  * `startDate` already reflects what's happened since the user last updated.
  * Overrides are honored during replay so confirmed amounts use the actual
  * value, canceled events are skipped, and moved events fire on the new date.
+ *
+ * Manual `Transaction` records (those without a `cashFlowId` linking them
+ * back to a scheduled cashflow) are treated as one-off past events on their
+ * `date`. Confirm-generated transactions ARE linked to a cashflow override
+ * the engine already counts, so they're excluded to avoid double-counting.
  */
 export function projectAccounts(
   accounts: Account[],
   cashFlows: CashFlow[],
+  transactions: Transaction[],
   startDate: Date,
   endDate: Date,
 ): AccountSeries[] {
@@ -37,12 +50,15 @@ export function projectAccounts(
   const dayEnd = startOfDay(endDate);
   if (isBefore(dayEnd, dayStart)) return [];
 
-  return accounts.map((account) => projectAccount(account, cashFlows, dayStart, dayEnd));
+  return accounts.map((account) =>
+    projectAccount(account, cashFlows, transactions, dayStart, dayEnd),
+  );
 }
 
 function projectAccount(
   account: Account,
   cashFlows: CashFlow[],
+  transactions: Transaction[],
   dayStart: Date,
   dayEnd: Date,
 ): AccountSeries {
@@ -52,6 +68,13 @@ function projectAccount(
   // fired between the last balance update and today are replayed.
   const balanceDate = startOfDay(parseDateInput(account.startingBalanceDate));
   const replayFrom = isBefore(balanceDate, dayStart) ? balanceDate : dayStart;
+
+  const txnEvents = transactions
+    .filter((t) => !t.cashFlowId && t.accountId === account.id)
+    .map((t) => ({ date: parseDateInput(t.date), delta: signedDeltaForTransaction(t, account) }))
+    .filter(
+      (e) => e.date.getTime() >= replayFrom.getTime() && e.date.getTime() <= dayEnd.getTime(),
+    );
 
   const events = cashFlows
     .filter((cf) => cashFlowTouchesAccount(cf, account.id))
@@ -101,6 +124,7 @@ function projectAccount(
       }
       return result;
     })
+    .concat(txnEvents)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Phase 1: replay past events (balanceDate → dayStart). These update the
@@ -181,7 +205,13 @@ export function totalBalance(series: AccountSeries[], on: Date): number {
 }
 
 export interface DailyEvent {
-  /** ID of the originating cash flow (not unique per occurrence). */
+  /** Discriminator:
+   *   - "scheduled" — a cashflow occurrence (tappable, opens override menu).
+   *   - "transaction" — a manually-logged Transaction with no `cashFlowId`
+   *     link, rendered as a static chip. */
+  kind: "scheduled" | "transaction";
+  /** For "scheduled" events: the originating cash flow id (not unique per
+   *  occurrence). For "transaction" events: the Transaction's id. */
   id: string;
   name: string;
   amount: number;
@@ -192,12 +222,12 @@ export interface DailyEvent {
   fromAccountId?: string | null;
   /** Destination account for transfers. */
   toAccountId?: string | null;
-  /** yyyy-mm-dd — the recurrence-derived scheduled date. Used as the key to
-   *  match against `cashFlow.overrides`, so the UI knows which occurrence to
-   *  toggle when a chip is tapped. */
+  /** yyyy-mm-dd — the recurrence-derived scheduled date (for "scheduled")
+   *  or the Transaction's date (for "transaction"). Used as the key to match
+   *  against `cashFlow.overrides` for scheduled events. */
   scheduledDate: string;
   /** The override that applies to this occurrence, if any. null = firing
-   *  as scheduled. */
+   *  as scheduled. Always null for transaction events. */
   override: OccurrenceOverride | null;
 }
 
@@ -222,6 +252,17 @@ function cashFlowTouchesAccount(cf: CashFlow, accountId: string): boolean {
  * correctly increases it. Passing a per-occurrence actual amount lets
  * confirmed overrides post the real number instead of the schedule.
  */
+/**
+ * Signed delta a manual Transaction produces on its account. Mirrors
+ * `signedDeltaFor` for the income/expense cases with the credit-flip.
+ * Transfer transactions are treated as expenses on their `accountId` — the
+ * Transaction type doesn't carry from/to so the other side can't be modeled.
+ */
+function signedDeltaForTransaction(t: Transaction, account: Account): number {
+  const baseSigned = t.direction === "income" ? t.amount : -t.amount;
+  return account.kind === "credit" ? -baseSigned : baseSigned;
+}
+
 function signedDeltaFor(cf: CashFlow, account: Account, amount: number): number {
   let baseSigned: number;
   if (cf.direction === "transfer") {
@@ -332,6 +373,7 @@ export function dailyProjection(
  */
 export function eventsByDay(
   cashFlows: CashFlow[],
+  transactions: Transaction[],
   window: { start: Date; end: Date },
 ): Map<number, DailyEvent[]> {
   const map = new Map<number, DailyEvent[]>();
@@ -374,6 +416,7 @@ export function eventsByDay(
           : cashFlow.amount;
 
       bucket.push({
+        kind: "scheduled",
         id: cashFlow.id,
         name: cashFlow.name,
         amount: displayAmount,
@@ -385,6 +428,30 @@ export function eventsByDay(
         override,
       });
     }
+  }
+
+  // Manual transactions (no cashFlowId link) appear as their own chips on
+  // their `date`. Confirm-generated transactions have a cashFlowId and are
+  // already represented by the underlying scheduled occurrence's chip.
+  for (const t of transactions) {
+    if (t.cashFlowId) continue;
+    const ts = parseDateInput(t.date).getTime();
+    if (ts < windowStartTs || ts > windowEndTs) continue;
+    let bucket = map.get(ts);
+    if (!bucket) {
+      bucket = [];
+      map.set(ts, bucket);
+    }
+    bucket.push({
+      kind: "transaction",
+      id: t.id,
+      name: t.name,
+      amount: t.amount,
+      direction: t.direction,
+      accountId: t.accountId,
+      scheduledDate: t.date,
+      override: null,
+    });
   }
   return map;
 }

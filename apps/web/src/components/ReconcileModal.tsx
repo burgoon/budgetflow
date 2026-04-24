@@ -41,10 +41,14 @@ export function ReconcileModal({ profile, account, onClose }: Props) {
     () => data.cashFlows.filter((c) => c.profileId === profile.id),
     [data.cashFlows, profile.id],
   );
+  const profileTransactions = useMemo(
+    () => data.transactions.filter((t) => t.profileId === profile.id),
+    [data.transactions, profile.id],
+  );
 
   const expected = useMemo(
-    () => computeExpectedBalance(account, profileCashFlows),
-    [account, profileCashFlows],
+    () => computeExpectedBalance(account, profileCashFlows, profileTransactions),
+    [account, profileCashFlows, profileTransactions],
   );
 
   // Inbox items that touch this specific account. If non-zero, reconciling

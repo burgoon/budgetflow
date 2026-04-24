@@ -77,11 +77,21 @@ export function ForecastChart({ profile, profileAccounts }: Props) {
     () => data.cashFlows.filter((cashFlow) => cashFlow.profileId === profile.id),
     [data.cashFlows, profile.id],
   );
+  const profileTransactions = useMemo(
+    () => data.transactions.filter((t) => t.profileId === profile.id),
+    [data.transactions, profile.id],
+  );
 
   const chartSeries = useMemo<AccountSeries[]>(() => {
     const today = new Date();
-    return projectAccounts(profileAccounts, profileCashFlows, today, horizonEndDate(horizon));
-  }, [profileAccounts, profileCashFlows, horizon]);
+    return projectAccounts(
+      profileAccounts,
+      profileCashFlows,
+      profileTransactions,
+      today,
+      horizonEndDate(horizon),
+    );
+  }, [profileAccounts, profileCashFlows, profileTransactions, horizon]);
 
   const endDate = horizonEndDate(horizon);
   const total = totalBalance(chartSeries, endDate);

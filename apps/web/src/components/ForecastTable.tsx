@@ -33,24 +33,29 @@ export function ForecastTable({ profile, profileAccounts }: Props) {
     () => data.cashFlows.filter((cashFlow) => cashFlow.profileId === profile.id),
     [data.cashFlows, profile.id],
   );
+  const profileTransactions = useMemo(
+    () => data.transactions.filter((t) => t.profileId === profile.id),
+    [data.transactions, profile.id],
+  );
 
   const series = useMemo<AccountSeries[]>(() => {
     const today = startOfDay(new Date());
     return projectAccounts(
       profileAccounts,
       profileCashFlows,
+      profileTransactions,
       today,
       addDays(today, PROJECTION_DAYS - 1),
     );
-  }, [profileAccounts, profileCashFlows]);
+  }, [profileAccounts, profileCashFlows, profileTransactions]);
 
   const events = useMemo<Map<number, DailyEvent[]>>(() => {
     const today = startOfDay(new Date());
-    return eventsByDay(profileCashFlows, {
+    return eventsByDay(profileCashFlows, profileTransactions, {
       start: today,
       end: addDays(today, PROJECTION_DAYS - 1),
     });
-  }, [profileCashFlows]);
+  }, [profileCashFlows, profileTransactions]);
 
   const rows = useMemo<DailyProjectionRow[]>(
     () => dailyProjection(series, events, PROJECTION_DAYS),
@@ -100,6 +105,7 @@ export function ForecastTable({ profile, profileAccounts }: Props) {
   function formatEventForCsv(event: DailyEvent): string {
     const sign = event.direction === "income" ? "+" : "-";
     const base = `${event.name} (${sign}${event.amount.toFixed(2)})`;
+    if (event.kind === "transaction") return `${base} [logged]`;
     const override = event.override;
     if (!override) return base;
     switch (override.status) {

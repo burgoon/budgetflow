@@ -35,7 +35,9 @@ export function findNeedsAttention(
   if (earliest.getTime() >= dayToday.getTime()) return [];
 
   const yesterday = addDays(dayToday, -1);
-  const map = eventsByDay(cashFlows, { start: earliest, end: yesterday });
+  // Inbox is for scheduled occurrences awaiting a decision — manual
+  // transactions are already settled, so pass `[]` for transactions.
+  const map = eventsByDay(cashFlows, [], { start: earliest, end: yesterday });
 
   const items: NeedsAttentionItem[] = [];
   for (const [ts, list] of map) {

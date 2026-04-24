@@ -96,12 +96,19 @@ export function DailyProjectionTable({ rows, view = "accounts", onEventClick }: 
                         const overrideClass = event.override
                           ? ` chip--${event.override.status}`
                           : "";
+                        const txnClass = event.kind === "transaction" ? " chip--txn" : "";
                         const amountPrefix = event.direction === "income" ? "+" : "−";
                         const amountLabel = `${amountPrefix}${formatCurrency(event.amount)}`;
-                        const tooltip = overrideTooltip(event, amountLabel, dateFormat);
-                        const key = `${event.id}:${event.scheduledDate}:${index}`;
-                        const chipClass = `chip chip--${event.direction}${overrideClass}`;
-                        if (onEventClick) {
+                        const tooltip =
+                          event.kind === "transaction"
+                            ? `${amountLabel} · Logged transaction`
+                            : overrideTooltip(event, amountLabel, dateFormat);
+                        const key = `${event.kind}:${event.id}:${event.scheduledDate}:${index}`;
+                        const chipClass = `chip chip--${event.direction}${overrideClass}${txnClass}`;
+                        // Manual transactions can't be tapped through the
+                        // override modal — they don't have a cashflow
+                        // behind them. Render as a static chip.
+                        if (onEventClick && event.kind === "scheduled") {
                           return (
                             <button
                               key={key}
